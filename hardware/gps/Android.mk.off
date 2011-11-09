@@ -1,0 +1,24 @@
+# hardware/libfreerunner_gps/Android.mk
+
+ifeq ($(strip $(BOARD_HAVE_FREERUNNER_GPS)),true)
+
+  LOCAL_PATH := $(call my-dir)
+
+  include $(CLEAR_VARS)
+
+  LOCAL_SRC_FILES := \
+    gps_freerunner.c
+
+  LOCAL_MODULE_TAGS := eng
+	
+  LOCAL_MODULE := libfreerunner_gps
+
+  LOCAL_SHARED_LIBRARIES := \
+    libutils \
+    libcutils \
+    libdl \
+    libc
+
+  include $(BUILD_SHARED_LIBRARY)
+
+endif
