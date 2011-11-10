@@ -21,8 +21,7 @@ endif
 
   LOCAL_C_INCLUDES += hardware/alsa_sound external/alsa-lib/include
   
-  LOCAL_SRC_FILES:= alsa_i8320.cpp
-#  LOCAL_SRC_FILES+= ALSAMixer.cpp
+  LOCAL_SRC_FILES:= alsa_nowplus.cpp
   
   LOCAL_MODULE_TAGS := eng
 

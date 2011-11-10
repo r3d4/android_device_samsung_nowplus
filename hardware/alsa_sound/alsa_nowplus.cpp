@@ -15,12 +15,15 @@
  ** limitations under the License.
  */
 
-//#define LOG_NDEBUG 0
-#define LOG_TAG "I8320ALSA"
+#define LOG_NDEBUG 0
+#define LOG_TAG "ALSA.NOWPLUS"
 #include <utils/Log.h>
 
 #include "AudioHardwareALSA.h"
 #include <media/AudioRecord.h>
+
+//#define HAVE_VOICEVOLUME
+
 
 #undef DISABLE_HARWARE_RESAMPLING
 
@@ -40,10 +43,13 @@ namespace android
 static int s_device_open(const hw_module_t*, const char*, hw_device_t**);
 static int s_device_close(hw_device_t*);
 static status_t s_init(alsa_device_t *, ALSAHandleList &);
-static status_t s_open(alsa_handle_t *, uint32_t, int);
+static status_t s_open(alsa_handle_t *, uint32_t, int, uint32_t);
 static status_t s_close(alsa_handle_t *);
 static status_t s_standby(alsa_handle_t *);
 static status_t s_route(alsa_handle_t *, uint32_t, int);
+#ifdef HAVE_VOICEVOLUME
+static status_t s_voicevolume(float volume);
+#endif
 #ifdef HAVE_FM_RADIO
 static status_t s_set(const String8& keyValuePairs);
 #endif
@@ -86,6 +92,9 @@ static int s_device_open(const hw_module_t* module, const char* name,
 #ifdef HAVE_FM_RADIO
     dev->set = s_set;
 #endif	
+#ifdef HAVE_VOICEVOLUME
+    dev->voicevolume = s_voicevolume
+#endif
     *device = &dev->common;
     return 0;
 }
@@ -103,7 +112,7 @@ static int fmEnabled=0;
 
 static const char *devicePrefix[SND_PCM_STREAM_LAST + 1] = {
         /* SND_PCM_STREAM_PLAYBACK : */"AndroidPlayback",
-        /* SND_PCM_STREAM_CAPTURE  : */"AndroidCapture",
+        /* SND_PCM_STREAM_CAPTURE  : */"AndroidRecord",
 };
 
 static alsa_handle_t _defaultsOut = {
@@ -111,6 +120,7 @@ static alsa_handle_t _defaultsOut = {
     devices     : AudioSystem::DEVICE_OUT_ALL,
     curDev      : 0,
     curMode     : 0,
+    curChannels : 0,
     handle      : 0,
     format      : SND_PCM_FORMAT_S16_LE, // AudioSystem::PCM_16_BIT
     channels    : 2,
@@ -126,6 +136,7 @@ static alsa_handle_t _defaultsIn = {
     devices     : AudioSystem::DEVICE_IN_ALL,
     curDev      : 0,
     curMode     : 0,
+    curChannels : 0,
     handle      : 0,
     format      : SND_PCM_FORMAT_S16_LE, // AudioSystem::PCM_16_BIT
     channels    : 1,
@@ -179,7 +190,10 @@ const char *deviceName(alsa_handle_t *handle, uint32_t device, int mode)
     //is fm?
 #ifdef HAVE_FM_RADIO
     if((device & AudioSystem::DEVICE_OUT_FM) || fmEnabled)
-      ALSA_STRCAT (devString, "_fm") 
+    {
+      ALSA_STRCAT (devString, "_fm");
+      LOGV("enable fm radio\n");
+    }
     else 
 #endif    
     if (hasDevExt) {
@@ -474,7 +488,7 @@ static status_t s_init(alsa_device_t *module, ALSAHandleList &list)
     return NO_ERROR;
 }
 
-static status_t s_open(alsa_handle_t *handle, uint32_t devices, int mode)
+static status_t s_open(alsa_handle_t *handle, uint32_t devices, int mode, uint32_t channels)
 {
     // Close off previously opened device.
     // It would be nice to determine if the underlying device actually
@@ -483,18 +497,21 @@ static status_t s_open(alsa_handle_t *handle, uint32_t devices, int mode)
     //
     s_close(handle);
 
-    LOGD("alsa: open called for devices %08x in mode %d...", devices, mode);
+    LOGD("open called for devices %08x in mode %d...", devices, mode);
 
 
     const char *stream = streamName(handle);
     const char *devName = deviceName(handle, devices, mode);
-        
+     
+    LOGV("open device '%s', stream: '%s'", devName, stream);
+       
     int err;
 
     for (;;) {
         // The PCM stream is opened in blocking mode, per ALSA defaults.  The
         // AudioFlinger seems to assume blocking mode too, so asynchronous mode
         // should not be used.
+        LOGV("trying device '%s'", devName);
         err = snd_pcm_open(&handle->handle, devName, direction(handle), 0 /*SND_PCM_ASYNC*/);
         if (err == 0) break;
 
@@ -508,6 +525,7 @@ static status_t s_open(alsa_handle_t *handle, uint32_t devices, int mode)
     if (err < 0) {
         // None of the Android defined audio devices exist. Open a generic one.
         devName = "default";
+        LOGV("defined audio devices doesn't exist, use: '%s'", devName);
         err = snd_pcm_open(&handle->handle, devName, direction(handle), 0);
     }
 
@@ -567,11 +585,15 @@ static status_t s_standby(alsa_handle_t *handle)
 
 static status_t s_route(alsa_handle_t *handle, uint32_t devices, int mode)
 {
-    LOGD("alsa: s_route called for devices %08x in mode %d...", devices, mode);
+    LOGD("s_route called for devices %08x in mode %d...", devices, mode);
 
-    if (handle->handle && handle->curDev == devices && handle->curMode == mode) return NO_ERROR;
+    if (handle->handle && handle->curDev == devices && handle->curMode == mode)
+    {    
+        LOGD("nothing to do");
+        return NO_ERROR;
+    }
 
-    return s_open(handle, devices, mode);
+    return s_open(handle, devices, mode, handle->curChannels);
 }
 
 #ifdef HAVE_FM_RADIO
@@ -582,15 +604,23 @@ static status_t s_set(const String8& keyValuePairs)
     const char *FM_ON="fm_on";
     const char *FM_OFF="fm_off";
     
-    LOGV("alsa: s_set '%s'", (const char *) keyValuePairs);
+    LOGV("s_set '%s'", (const char *) keyValuePairs);
 
     if(strstr(keyValuePairs, FM_ON)) fmEnabled=1;
     else if(strstr(keyValuePairs, FM_OFF)) fmEnabled=0;
 
-    LOGV("alsa: s_set fm is %s", fmEnabled?"enabled":"disabled");
+    LOGV("s_set fm is %s", fmEnabled?"enabled":"disabled");
 
 	return err;
 }
 #endif
 
+#ifdef HAVE_VOICEVOLUME
+static status_t s_voicevolume(float volume)
+{
+    LOGW("s_voicevolume not implemented");
+    
+    return NO_ERROR;
+}
+#endif
 }

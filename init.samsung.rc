@@ -22,7 +22,7 @@ on fs
     insmod /system/lib/modules/vibrator.ko
     insmod /system/lib/modules/pl_sensor.ko
     insmod /system/lib/modules/Si4709_driver.ko
-    insmod /system/lib/modules/rfs.ko
+#   insmod /system/lib/modules/rfs.ko
 #	insmod /system/lib/modules/multipdp.ko
     
     

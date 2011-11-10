@@ -37,8 +37,8 @@ PRODUCT_PACKAGES += \
     Pacman \
     CMWallpapers \
     acoustics.default \
-    libtiOsLib \
-    librs_jni
+    libtiOsLib
+
 
 
 #add external packages
@@ -62,7 +62,7 @@ PRODUCT_PACKAGES += \
 	libOMX.TI.WBAMR.encode \
 	libOMX.TI.AAC.encode \
 	libOMX.TI.AAC.decode \
-	libOMX.TI.MP3.decode \
+#	libOMX.TI.MP3.decode \
 	libOMX.TI.WMA.decode \
 	libOMX.TI.VPP \
 	libOMX.TI.JPEG.encoder \
@@ -71,10 +71,6 @@ PRODUCT_PACKAGES += \
 	libOMX.TI.AMR.decode \
     libomap_mm_library_jni \
     tiomxplayer     
-
-# Overlay
-PRODUCT_PACKAGES += \
-        overlay.omap3
 
 # SkiaHW
 PRODUCT_PACKAGES += \
@@ -117,7 +113,7 @@ PRODUCT_COPY_FILES += \
 # kernel modules
 PRODUCT_COPY_FILES += \
     device/samsung/nowplus/prebuilt/modules/rfs.ko:system/lib/modules/rfs.ko \
-    device/samsung/nowplus/prebuilt/modules/camera.ko.ko:system/lib/modules/camera.ko.ko \
+    device/samsung/nowplus/prebuilt/modules/camera.ko:system/lib/modules/camera.ko \
     device/samsung/nowplus/prebuilt/modules/camera_pmic.ko:system/lib/modules/camera_pmic.ko \
     device/samsung/nowplus/prebuilt/modules/dpram.ko:system/lib/modules/dpram.ko \
     device/samsung/nowplus/prebuilt/modules/kxsd9.ko:system/lib/modules/kxsd9.ko \
