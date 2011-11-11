@@ -644,7 +644,7 @@ s_fmt_fail:
 			PPM("YUV COLOR ROTATION STARTED\n");
 #endif                   
 
-#if 0	//YUV dump code for testing
+#if 1	//YUV dump code for testing
 			FILE* fIn = NULL;	
 			fIn = fopen("/data/output.yuv", "w");
 			if ( fIn == NULL ) 	  

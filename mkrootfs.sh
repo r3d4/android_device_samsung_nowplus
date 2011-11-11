@@ -56,7 +56,7 @@ function create_rootfs()
 {
     echo "creating rootfs."
        
-    copy_modules
+    #copy_modules
     
     mkdir -p $ANDROIDROOTFS
     mkdir $ANDROIDROOTFS/lib/
@@ -70,7 +70,7 @@ function create_rootfs()
 #copy sgx 
    #cp -Rdpf $DEVICEDIR/prebuilt/sgx/system/* $ANDROIDROOTFS/system/
         
-    copy_sgx_modules
+    #copy_sgx_modules
 
 
     #echo "creating rootfs.tar.bz2"

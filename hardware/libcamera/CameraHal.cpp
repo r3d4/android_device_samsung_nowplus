@@ -202,7 +202,6 @@ namespace android {
 		"max"				//CAMERA_MAX_ANTIBANDING,
 	};
 #define MAX_ANTI_BANDING_VALUES 5
-#define MAX_ZOOM_STEPS 23
 #define MAX_ZOOM 30
 
 #define CLEAR(x) memset (&(x), 0, sizeof (x))
@@ -333,7 +332,7 @@ namespace android {
 		Neon_Rotate = (NEON_fpo) dlsym(pTIrtn, "Neon_RotateCYCY");
 
 		if ((error = dlerror()) != NULL) {
-			LOGE("Couldnot find  Neon_RotateCYCY symbol, error=%s\n", error);
+			LOGE("Couldnot find  Neon_RotateCYCY symbol, error=%s, addr= %p\n", error, Neon_Rotate);
 			dlclose(pTIrtn);
 			pTIrtn = NULL;
 		} 
@@ -486,7 +485,7 @@ namespace android {
 		mPreviousFlashMode = 0;
 		mPreviousBrightness = 5;
 		mPreviousExposure = 5;
-		mPreviousZoom = 1;
+		mPreviousZoom = 0;
 #ifdef HALO_ISO
 		mPreviousISO = 1;
 #else
@@ -590,7 +589,7 @@ namespace android {
 
 		p.set(p.KEY_ANTIBANDING, "off");
 		p.set(p.KEY_SUPPORTED_ANTIBANDING, "auto,50hz,60hz,off");	
-	//	p.set(p.KEY_FLASH_MODE, p.FLASH_MODE_OFF);
+		p.set(p.KEY_FLASH_MODE, p.FLASH_MODE_OFF);
 		p.set("zoom", "0");
 		p.set(p.KEY_JPEG_QUALITY, "100");
 		p.set(p.KEY_ROTATION,"0");
@@ -1017,7 +1016,7 @@ namespace android {
 			else    //main 5MP camera
 			{
 				camera_device = open(VIDEO_DEVICE, O_RDWR);
-				mCamera_Mode = CAMERA_MODE_JPEG;
+				mCamera_Mode = CAMERA_MODE_YUV;//CAMERA_MODE_JPEG;
 				mCameraIndex = MAIN_CAMERA;
 			}
 
@@ -1202,9 +1201,9 @@ exit:
 
 		setWB(getWBLighting());
 		setEffect(getEffect());
-		setAntiBanding(getAntiBanding());
+		//setAntiBanding(getAntiBanding()); //not supported by m4mo
 		setSceneMode(getSceneMode());
-	  //setFlashMode(getFlashMode());
+	    setFlashMode(getFlashMode());
 		setExposure(getExposure());
 		setZoom(getZoomValue());
 		setFocusMode(getFocusMode());
@@ -2680,7 +2679,7 @@ exit:
 			}
 		}
 
-		if(setAntiBanding(getAntiBanding()) < 0)	return UNKNOWN_ERROR;
+		//if(setAntiBanding(getAntiBanding()) < 0)	return UNKNOWN_ERROR;
 		if(setSceneMode(getSceneMode()) < 0) 		return UNKNOWN_ERROR;
 		if(setExposure(getExposure()) < 0) 			return UNKNOWN_ERROR;
 		if(setZoom(getZoomValue()) < 0) 			return UNKNOWN_ERROR;
@@ -2690,8 +2689,8 @@ exit:
 		if(setGPSAltitude(getGPSAltitude()) < 0) 	return UNKNOWN_ERROR;
 		if(setGPSTimestamp(getGPSTimestamp()) < 0) 	return UNKNOWN_ERROR;
 		if(setGPSProcessingMethod(getGPSProcessingMethod()) < 0) 	return UNKNOWN_ERROR;
-		if(setJpegThumbnailSize(getJpegThumbnailSize()) < 0) 		return UNKNOWN_ERROR;		
-		//	setFlashMode(getFlashMode());
+		if(setJpegThumbnailSize(getJpegThumbnailSize()) < 0) 		return UNKNOWN_ERROR;	
+        if(setFlashMode(getFlashMode()) < 0) 		return UNKNOWN_ERROR;	        
 
 		if(mCamMode != CAMCORDER_MODE && mCamMode != VT_MODE)
 		{
@@ -3169,6 +3168,7 @@ exit:
 
 	status_t CameraHal::setAntiBanding(const char* antibanding)
 	{
+#ifndef MOD 
 		if(camera_device && mCameraIndex == MAIN_CAMERA)
 		{
 			int antibandingValue =1;
@@ -3194,7 +3194,7 @@ exit:
 				}
 				else
 				{    
-#ifndef MOD            
+           
 					struct v4l2_control vc;            
 					CLEAR(vc);
 					vc.id = V4L2_CID_ANTIBANDING;
@@ -3205,11 +3205,12 @@ exit:
 						LOGE("setAntiBanding fail\n");
 						return UNKNOWN_ERROR;  
 					}
-#endif
+
 					mPreviousAntibanding = i;
 				}
 			}
 		}
+#endif
 		return NO_ERROR;
 	}
 
@@ -3402,14 +3403,13 @@ exit:
 			}
 
 			struct v4l2_control vc;
-
+            
 			if(zoom != mPreviousZoom)
 			{
 				HAL_PRINT("setZoom : mPreviousZoom =%d zoom=%d\n", mPreviousZoom,zoom);
 
 				CLEAR(vc);
 				vc.id = V4L2_CID_ZOOM;
-				//vc.value = (int)zoom/10; // 100 in Android = factor 1x = m4mo: 0xA = 10.0 
                 vc.value = zoom;
                
 				if (ioctl (camera_device, VIDIOC_S_CTRL, &vc) < 0)

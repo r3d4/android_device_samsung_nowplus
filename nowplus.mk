@@ -167,4 +167,4 @@ PRODUCT_DEFAULT_LANGUAGE := en_GB
 # Overrides
 PRODUCT_SPECIFIC_DEFINES += TARGET_PRELINKER_MAP=$(TOP)/device/samsung/nowplus/prelink-linux-arm-nowplus.map
 
-$(call inherit-product-if-exists, vendor/samsung/galaxysl/nopwlus-vendor.mk)
+$(call inherit-product-if-exists, vendor/samsung/nowplus/nopwlus-vendor.mk)

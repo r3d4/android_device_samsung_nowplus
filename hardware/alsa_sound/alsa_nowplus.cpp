@@ -586,8 +586,9 @@ static status_t s_standby(alsa_handle_t *handle)
 static status_t s_route(alsa_handle_t *handle, uint32_t devices, int mode)
 {
     LOGD("s_route called for devices %08x in mode %d...", devices, mode);
-
-    if (handle->handle && handle->curDev == devices && handle->curMode == mode)
+    
+    //always rout fm audio
+    if (handle->handle && handle->curDev == devices && handle->curMode == mode && !fmEnabled)
     {    
         LOGD("nothing to do");
         return NO_ERROR;
