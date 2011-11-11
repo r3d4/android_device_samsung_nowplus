@@ -32,8 +32,16 @@ on boot
     setprop net.eth0.dns1 8.8.8.8
     setprop net.dns1 8.8.8.8
     setprop debug.video.rotateoverlay 0
-   
+  
 
+# Enabling Power Management features
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 250000
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 600000
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor ondemand
+    write /sys/devices/system/cpu/cpu0/cpufreq/ondemand/up_threshold 80
+    write /sys/devices/system/cpu/cpu0/cpufreq/ondemand/sampling_rate 30000
+
+    
 #make fmradio comaptible with cm7 path
     symlink /dev/fmradio /dev/radio0
     
