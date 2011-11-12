@@ -157,10 +157,11 @@ namespace android {
 		"off", 				// M4MO_FLASH_CAPTURE_OFF		1
 		"on",				// M4MO_FLASH_CAPTURE_ON		2
 		"auto", 			// M4MO_FLASH_CAPTURE_AUTO		3
+        "torch"             // M4MO_FLASH_TORCH		        4
 		"maxplus" 			//CAMERA_FLASH_MAX_PLUS_1
 	};
 
-#define MAX_FLASH_MODE 4
+#define MAX_FLASH_MODE 5
 	static const char* focus_mode[] = {
 		"minus1", 			// to match focus_mode 
 		"auto",				//M4MO_AF_MODE_NORMAL 	1
@@ -537,6 +538,9 @@ namespace android {
 			p.set(p.KEY_JPEG_THUMBNAIL_HEIGHT, "480");
 			p.set(p.KEY_JPEG_THUMBNAIL_QUALITY, "100");
             
+            p.set(CameraParameters::KEY_SMOOTH_ZOOM_SUPPORTED, mCameraIndex ? "false" : "true");
+            
+            p.set(p.KEY_SUPPORTED_FLASH_MODES,"off,on,auto,torch");
 		}
 		else
 		{
@@ -569,8 +573,6 @@ namespace android {
 		p.set(p.KEY_SUPPORTED_PREVIEW_FORMATS,"yuv420sp");
 		p.set(p.KEY_SUPPORTED_WHITE_BALANCE,"auto,daylight,cloudy-daylight,incandescent,fluorescent");
         p.set(p.KEY_SUPPORTED_EFFECTS,"none,mono,negative,sepia,solarize,posterize,whiteboard,blackboard,aqua");
-
-	//	p.set(p.KEY_SUPPORTED_FLASH_MODES,"off,on,auto");
 
 		p.set(p.KEY_HORIZONTAL_VIEW_ANGLE, "51.2");
 		p.set(p.KEY_VERTICAL_VIEW_ANGLE, "39.4");		   

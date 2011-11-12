@@ -25,6 +25,7 @@ PRODUCT_PACKAGES += \
     screenshot \
     CMScreenshot \
 	FM \
+    Torch \
 	hciconfig \
 	hcitool \
     AndroidTerm \
