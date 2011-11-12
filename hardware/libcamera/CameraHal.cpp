@@ -1016,7 +1016,7 @@ namespace android {
 			else    //main 5MP camera
 			{
 				camera_device = open(VIDEO_DEVICE, O_RDWR);
-				mCamera_Mode = CAMERA_MODE_YUV;//CAMERA_MODE_JPEG;
+				mCamera_Mode = CAMERA_MODE_JPEG;
 				mCameraIndex = MAIN_CAMERA;
 			}
 
