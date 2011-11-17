@@ -588,7 +588,8 @@ namespace android {
 			int mPreviewFrameSkipValue;
 
 			int32_t mCameraMode;
-			bool mSamsungCamera;		
+			bool mSamsungCamera;
+            bool mAutoFocusUsed; //was AF used        
 			int mCamMode;		
 			int mCounterSkipFrame;
 			int mSkipFrameNumber;

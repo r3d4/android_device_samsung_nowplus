@@ -10,6 +10,6 @@
     <bool name="has_rgb_notification_led">true</bool>
 
     <!-- LED Flashlight -->
-    <bool name="has_led_flash">false</bool>
+    <bool name="has_led_flash">true</bool>
 
 </resources>

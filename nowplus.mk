@@ -31,8 +31,6 @@ PRODUCT_PACKAGES += \
     AndroidTerm \
     FileManager \
     CMParts \
-    CMStats \
-    CMUpdateNotify \
     DSPManager \
     libcyanogen-dsp \
     Pacman \
@@ -50,8 +48,6 @@ PRODUCT_PACKAGES += \
 # Addition of LOCAL_MODULE_TAGS requires us to specify
 # libraries needed for a particular device
 PRODUCT_PACKAGES += \
-    dspexec \
-    libbridge \
 	01_Vendor_ti_omx.cfg \
 	libVendor_ti_omx \
 	libVendor_ti_omx_config_parser \
@@ -63,7 +59,7 @@ PRODUCT_PACKAGES += \
 	libOMX.TI.WBAMR.encode \
 	libOMX.TI.AAC.encode \
 	libOMX.TI.AAC.decode \
-#	libOMX.TI.MP3.decode \
+	libOMX.TI.MP3.decode \
 	libOMX.TI.WMA.decode \
 	libOMX.TI.VPP \
 	libOMX.TI.JPEG.encoder \
@@ -73,6 +69,11 @@ PRODUCT_PACKAGES += \
     libomap_mm_library_jni \
     tiomxplayer     
 
+    
+    
+    
+    
+    
 # SkiaHW
 PRODUCT_PACKAGES += \
         libskiahw
@@ -135,7 +136,6 @@ PRODUCT_COPY_FILES += \
 	
 # permissions/ Install the features available on this device.
 PRODUCT_COPY_FILES += \
-    packages/wallpapers/LivePicker/android.software.live_wallpaper.xml:/system/etc/permissions/android.software.live_wallpaper.xml \
     frameworks/base/data/etc/platform.xml:system/etc/permissions/platform.xml \
     frameworks/base/data/etc/handheld_core_hardware.xml:system/etc/permissions/handheld_core_hardware.xml \
     frameworks/base/data/etc/android.hardware.camera.front.xml:system/etc/permissions/android.hardware.camera.front.xml \
@@ -153,7 +153,11 @@ PRODUCT_COPY_FILES += \
 PRODUCT_COPY_FILES += \
     device/samsung/nowplus/TWL4030_Keypad.kl:system/usr/keylayout/TWL4030_Keypad.kl \
     device/samsung/nowplus/gpio-keys.kl:system/usr/keylayout/gpio-keys.kl
-
+    
+# kernel modules
+PRODUCT_COPY_FILES += \
+	$(call find-copy-subdir-files,*,device/samsung/nowplus/prebuilt/modules,system/lib/modules)
+    
 # Generated kcm keymaps
 PRODUCT_PACKAGES += \
         TWL4030_Keypad.kcm\
@@ -168,4 +172,5 @@ PRODUCT_DEFAULT_LANGUAGE := en_GB
 # Overrides
 PRODUCT_SPECIFIC_DEFINES += TARGET_PRELINKER_MAP=$(TOP)/device/samsung/nowplus/prelink-linux-arm-nowplus.map
 
-$(call inherit-product-if-exists, vendor/samsung/nowplus/nopwlus-vendor.mk)
+$(call inherit-product-if-exists, vendor/samsung/nowplus/nowplus-vendor.mk)
+

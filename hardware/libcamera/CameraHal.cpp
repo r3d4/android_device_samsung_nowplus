@@ -157,7 +157,7 @@ namespace android {
 		"off", 				// M4MO_FLASH_CAPTURE_OFF		1
 		"on",				// M4MO_FLASH_CAPTURE_ON		2
 		"auto", 			// M4MO_FLASH_CAPTURE_AUTO		3
-        "torch"             // M4MO_FLASH_TORCH		        4
+        "torch",             // M4MO_FLASH_TORCH		        4
 		"maxplus" 			//CAMERA_FLASH_MAX_PLUS_1
 	};
 
@@ -210,6 +210,7 @@ namespace android {
 	/* M4MO Auto Focus Mode */
 #define AF_START			1
 #define AF_STOP				2
+#define AF_RELEASE          3
 #define CAF_START			5
 
 #define FLASH_AF_OFF		1
@@ -283,6 +284,7 @@ namespace android {
 		mCamMode(1),
 		mCameraMode(1), 
 		mSamsungCamera (0),   
+        mAutoFocusUsed(false),
 		mCounterSkipFrame(0),
 		mSkipFrameNumber(0),
 		mPassedFirstFrame(0),
@@ -373,7 +375,9 @@ namespace android {
 	{
 		int err = 0;
 		LOG_FUNCTION_NAME
-
+		struct v4l2_control vc;
+		CLEAR(vc);
+        
 		if(mPreviewThread != NULL) 
 		{
 			Message msg;
@@ -1064,10 +1068,26 @@ exit:
 	{
 		int err = 0;
 		int buffer_count;
-		LOG_FUNCTION_NAME
-
+		struct v4l2_control vc;
+        
+        LOG_FUNCTION_NAME
+        
 		if(camera_device)
 		{
+             // disable AF, move lens to save position
+            if (mAutoFocusUsed)
+            {
+            	CLEAR(vc);
+                vc.id = V4L2_CID_AF;
+                vc.value = AF_STOP;
+                if (ioctl (camera_device, VIDIOC_S_CTRL, &vc) < 0)
+                    LOGE("stop autofocus fail\n");
+                    
+                vc.value = AF_RELEASE;
+                if (ioctl (camera_device, VIDIOC_S_CTRL, &vc) < 0)
+                    LOGE("release autofocus fail\n");
+            }
+            
 			close(camera_device);
 			camera_device = NULL;
 		}
@@ -1519,7 +1539,7 @@ fail_reqbufs:
 				LOGE("VIDIOC_STREAMOFF Failed\n");
 				err = -1;
 			}
-
+            
 			mVideoHeap.clear();
 			mVideoHeap_422.clear();
 
@@ -2192,6 +2212,7 @@ exit:
 		}
 		else
 		{
+            mAutoFocusUsed = true;
 			vc.id = V4L2_CID_AF;
 			vc.value = AF_START;
 			if (ioctl (camera_device, VIDIOC_S_CTRL, &vc) < 0)
@@ -3394,6 +3415,7 @@ exit:
 
 	status_t CameraHal::setZoom(int zoom)
 	{
+        HAL_PRINT("setZoom called, zoom=%d\n", zoom);
 		if(camera_device && mCameraIndex == MAIN_CAMERA)
 		{
 			if(zoom < 0 || zoom > MAX_ZOOM) {
