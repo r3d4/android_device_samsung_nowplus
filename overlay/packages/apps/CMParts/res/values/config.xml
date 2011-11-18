@@ -5,10 +5,14 @@
 
     <!-- Whether or not to display the camera button settings -->
     <bool name="has_camera_button">true</bool>
-
+    
     <!-- Notification LED can show any color -->
     <bool name="has_rgb_notification_led">true</bool>
-
+    
+    <!-- Whether or not to display search button settings -->
+    <!-- on nowplus we abuse search as back -->
+    <bool name="has_search_button">false</bool>
+    
     <!-- LED Flashlight -->
     <bool name="has_led_flash">true</bool>
 

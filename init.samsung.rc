@@ -5,18 +5,34 @@ on init
 
     mkdir /mnt/emmc 0000 system system
     symlink /mnt/emmc /emmc
-    
+
     #for storing bt firmware in /system instead of initrd
     symlink /system/lib /lib
-        
-    # Increase readahead buffers on MMC devices
-    write /sys/block/mmcblk0/bdi/read_ahead_kb 1024
-    write /sys/block/mmcblk1/bdi/read_ahead_kb 1024
-    
+
     #mount debugfs for access pm functions
     mkdir /debug 0771 system system
     mount debugfs debugfs /debug
-    
+
+# Enabling Power Management features
+    # Enabling system for Hitting Retention
+    write /debug/pm_debug/sleep_while_idle 1
+    # Enabling system for Hitting OFF
+    #write /debug/pm_debug/enable_off_mode 1
+    #write /debug/pm_debug/voltage_off_while_idle 1
+
+    # Enablig DVFS with ondemand governor, disable atm slows down ui
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor ondemand
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 250000
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 600000
+    write /sys/devices/system/cpu/cpu0/cpufreq/ondemand/up_threshold 80
+    write /sys/devices/system/cpu/cpu0/cpufreq/ondemand/sampling_rate 30000
+
+
+# Increase readahead buffers on MMC devices
+    write /sys/block/mmcblk0/bdi/read_ahead_kb 2048
+    write /sys/block/mmcblk1/bdi/read_ahead_kb 2048
+
+
 on fs
 
 # load camera modules
@@ -25,7 +41,7 @@ on fs
     insmod /system/lib/modules/main_sensor.ko
     insmod /system/lib/modules/vt_sensor.ko
 
-# additional kernel modules  
+# additional kernel modules
     insmod /system/lib/modules/param.ko
     insmod /system/lib/modules/dpram.ko
     insmod /system/lib/modules/kxsd9.ko
@@ -34,40 +50,27 @@ on fs
     insmod /system/lib/modules/Si4709_driver.ko
 #   insmod /system/lib/modules/rfs.ko
 #	insmod /system/lib/modules/multipdp.ko
-    
-    
+
+
 on boot
     setprop ro.radio.use-ppp no
     setprop ro.radio.noril yes
     setprop net.eth0.dns1 8.8.8.8
     setprop net.dns1 8.8.8.8
     setprop debug.video.rotateoverlay 0
-  
 
-# Enabling Power Management features
-    # Enabling system for Hitting OFF
-    write /sys/power/sleep_while_idle 1
-    write /sys/power/enable_off_mode 1
-    write /sys/power/voltage_off_while_idle 1
-  
-    # Enablig DVFS with ondemand governor, disable atm slows down ui
-    #write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor ondemand
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 250000
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 600000
-    write /sys/devices/system/cpu/cpu0/cpufreq/ondemand/up_threshold 80
-    write /sys/devices/system/cpu/cpu0/cpufreq/ondemand/sampling_rate 30000
 
-    
+
 #make fmradio comaptible with cm7 path
     symlink /dev/fmradio /dev/radio0
-    
+
 # change permissions for alsa nodes
     symlink /dev/snd/pcmC0D0c /dev/pcmC0D0c
     symlink /dev/snd/pcmC0D0p /dev/pcmC0D0p
     symlink /dev/snd/controlC0 /dev/controlC0
     symlink /dev/snd/timer /dev/timer
 
-    
+
 #Owners, Modes for Bluetooth
     chmod 0660 sys/class/rfkill/rfkill0/state
     chown bluetooth bluetooth /sys/class/rfkill/rfkill0/state
@@ -96,7 +99,7 @@ on boot
     chmod 0666 /sys/devices/platform/omapdss/manager1/alpha_blending_enabled
     #write /sys/devices/platform/omapdss/manager0/alpha_blending_enabled 1
 
-# change permissions for wifi        
+# change permissions for wifi
     chown wifi wifi /system/etc/wifi
     chmod 0770 /system/etc/wifi
     chown wifi wifi /system/etc/wifi/wpa_supplicant.conf
@@ -105,17 +108,17 @@ on boot
 
 
     chown system system /sys/class/timed_output/vibrator/enable
-        
+
     chown system system /sys/class/leds/led1_B/trigger
     chown system system /sys/class/leds/led1_R/brightness
-    chown system system /sys/class/leds/led1_G/brightness    
+    chown system system /sys/class/leds/led1_G/brightness
     chown system system /sys/class/leds/led1_B/brightness
     chmod 0660 /sys/class/leds/led1_B/trigger
     chmod 0644 /system/media/bootanimation.zip
 #superuser
     chmod 0755 /system/xbin/su
 
-#load sgx drivers    
+#load sgx drivers
 service pvr /system/bin/sgx/rc.pvr start
     oneshot
 
@@ -131,15 +134,15 @@ service wlan_loader /system/bin/wlan_loader \
          disabled
          oneshot
 
-#init wpa supplicant 
+#init wpa supplicant
 service wpa_supplicant /system/bin/wpa_supplicant -Dtiwlan0 -itiwlan0 -c/data/misc/wifi/wpa_supplicant.conf -dd
          socket wpa_tiwlan0 dgram 660 wifi wifi
          disabled
          oneshot
 
-#init dhcpd 
+#init dhcpd
 service dhcpcd_tiwlan0 /system/bin/dhcpcd -ABKL -d tiwlan0
-         disabled 
+         disabled
          oneshot
 
 # TI WLAN Soft AP related services and configuration
@@ -159,12 +162,12 @@ service hostapd /system/bin/hostap -dd /data/misc/wifi/hostapd.conf
 #service baseimage /system/bin/dspexec -v -T /system/lib/dsp/baseimage.dof
 #    user root
 #    group system audio camera graphics inet net_bt net_bt_admin net_raw media
-#    oneshot  
+#    oneshot
 service baseimage /system/bin/cexec.out /system/lib/dsp/baseimage.dof
     user root
     group system audio camera graphics inet net_bt net_bt_admin net_raw media
     oneshot
-   
+
 #service fw3a /system/bin/fw3a_core
 #   user media
 #    group system camera
@@ -184,7 +187,7 @@ service hciattach /system/bin/hciattach /dev/ttyS1 texas 3000000
     group bluetooth net_bt_admin misc
     disabled
     oneshot
-                     
+
 #service DR-daemon /system/bin/drexe
 #    user rootfs
 
