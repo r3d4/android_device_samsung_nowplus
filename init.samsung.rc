@@ -89,6 +89,8 @@ on boot
     chmod 0666 /sys/devices/platform/omapdss/overlay2/enabled
     chmod 0666 /sys/devices/platform/omapdss/manager0/display
     chmod 0666 /sys/devices/platform/omapdss/manager1/display
+	chmod 0666 /sys/devices/platform/omapdss/manager0/name
+	chmod 0666 /sys/devices/platform/omapdss/manager1/name
     chmod 0666 /sys/devices/platform/omapdss/manager0/trans_key_enabled
     chmod 0666 /sys/devices/platform/omapdss/manager1/trans_key_enabled
     chmod 0666 /sys/devices/platform/omapdss/manager0/trans_key_type
@@ -115,8 +117,6 @@ on boot
     chown system system /sys/class/leds/led1_B/brightness
     chmod 0660 /sys/class/leds/led1_B/trigger
     chmod 0644 /system/media/bootanimation.zip
-#superuser
-    chmod 0755 /system/xbin/su
 
 #load sgx drivers
 service pvr /system/bin/sgx/rc.pvr start
