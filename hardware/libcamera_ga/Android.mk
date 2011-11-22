@@ -23,7 +23,6 @@ LOCAL_C_INCLUDES += \
     frameworks/base/include/camera \
     frameworks/base/include/binder \
     frameworks/base/include/ui \
-    ../include \
     external/skia/include/core
 
 LOCAL_CFLAGS += -fno-short-enums 
@@ -33,8 +32,8 @@ ifdef HARDWARE_OMX
 LOCAL_SRC_FILES += \
     JpegEncoder.cpp \
     JpegDecoder.cpp \
-	scale.c \
-    colorconvert.c
+    colorconvert.c \
+	scale.c
 
 LOCAL_C_INCLUDES += \
     hardware/ti/omap3-compat/dspbridge/api/inc \
@@ -46,7 +45,7 @@ LOCAL_C_INCLUDES += \
 #   hardware/ti/omx/system/src/openmax_il/resource_manager_proxy/inc \
 #    hardware/ti/omx/system/src/openmax_il/resource_manager/resource_activity_monitor/inc
 
-LOCAL_CFLAGS += -O0 -g3 -fpic -fstrict-aliasing -DIPP_LINUX -D___ANDROID___ -DHARDWARE_OMX -DOMAP_ENHANCEMENT
+LOCAL_CFLAGS += -O0 -g3 -fpic -fstrict-aliasing -DIPP_LINUX -D___ANDROID___ -DHARDWARE_OMX
 
 LOCAL_SHARED_LIBRARIES += \
     libbridge \
@@ -57,7 +56,6 @@ LOCAL_SHARED_LIBRARIES += \
 
 endif
 
-ifdef OMAP_ENHANCEMENT	
 ifdef FW3A
 
 LOCAL_C_INCLUDES += \
@@ -78,7 +76,6 @@ LOCAL_SHARED_LIBRARIES += \
 
 LOCAL_CFLAGS += -O0 -g3 -DIPP_LINUX -D___ANDROID___ -DFW3A -DICAP -DIMAGE_PROCESSING_PIPELINE #_MMS -DCAMERA_ALGO
 
-endif
 endif
 
 LOCAL_PRELINK_MODULE := false

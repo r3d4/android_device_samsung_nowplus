@@ -40,18 +40,25 @@
 #include "binder/MemoryBase.h"
 #include "binder/MemoryHeapBase.h"
 #include <utils/threads.h>
+#include <ui/Overlay.h>
 #include <camera/CameraHardwareInterface.h>
 #include "MessageQueue.h"
 #include "Exif.h"
 #include "ExifCreator.h"
+
 
 extern "C" {
 #include <stdio.h>
 #include <sys/types.h>
 }
 
-#include "../../../../kernel/include/linux/videodev2.h"
-#include "overlay_common.h"
+#include "../include/videodev2.h"
+#include "../liboverlay/overlay_common.h"
+#include "../liboverlay/v4l2_utils.h"
+
+
+#define	NOWPLUS_MOD	//modification for nowplus
+
 
 #define CAMERA_MODE_JPEG    1
 #define CAMERA_MODE_YUV     2

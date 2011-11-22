@@ -85,87 +85,92 @@ typedef struct {
 } mapping_data_t;
 
 static const char* wb_value[] = {
-    "minus1",       //CAMERA_WB_MIN_MINUS_1,
-    "auto",         //CAMERA_WB_AUTO = 1,  /* This list must match aeecamera.h */
-    "daylight",     //CAMERA_WB_DAYLIGHT,
-    "cloudy-daylight",       //CAMERA_WB_CLOUDY_DAYLIGHT,    
-    "incandescent", //CAMERA_WB_INCANDESCENT,
-    "fluorescent",   //CAMERA_WB_FLUORESCENT,
-    "maxplus1"      //CAMERA_WB_MAX_PLUS_1
+	"minus1",           
+	"auto",         	// M4MO_WB_AUTO					1
+	"incandescent",		// M4MO_WB_INCANDESCENT			2
+	"fluorescent",		// M4MO_WB_FLUORESCENT			3
+	"daylight",     	// M4MO_WB_DAYLIGHT				4
+	"cloudy-daylight",	// M4MO_WB_CLOUDY				5
+	"shade",	    	// M4MO_WB_SHADE				6
+	"horizon",      	// M4MO_WB_HORIZON				7
+	"maxplus1"		
 
 };
 
-#define MAX_WBLIGHTING_EFFECTS 6
+#define MAX_WBLIGHTING_EFFECTS 8
 
-static const char* color_effects[] = {
-    "minus1", // to match camera_effect_t 
-    "none", //CAMERA_EFFECT_OFF = 1,  /* This list must match aeecamera.h */
-    "sharpen", //CAMERA_EFFECT_SHARPEN.
-    "purple",//CAMERA_EFFECT_PURPLE,
-    "negative", //CAMERA_EFFECT_NEGATIVE,
-    "sepia", //CAMERA_EFFECT_SEPIA,
-    "aqua",//CAMERA_EFFECT_AQUA,
-    "green-tint", //CAMERA_EFFECT_GREEN,
-    "blue-tint", //CAMERA_EFFECT_BLUE,
-    "pink", //CAMERA_EFFECT_PINK,
-    "yellow", //CAMERA_EFFECT_YELLOW,
-    "mono", //CAMERA_EFFECT_GRAY,
-    "red-tint", //CAMERA_EFFECT_RED,
-    "bw", //CAMERA_EFFECT_BW,    
-    "antique", //CAMERA_EFFECT_ANTIQUE,    
-    "maxplus" // CAMERA_EFFECT_MAX_PLUS_1
-};
+static const char* color_effects[] = {    
+	"minus1",			// to match camera_effect_t 
+	"none", 			// M4MO_EFFECT_OFF				    1
+	"sepia", 			// M4MO_EFFECT_SEPIA				2
+	"mono",             // M4MO_EFFECT_GRAY					3
+	"red",              // M4MO_EFFECT_RED				    4
+	"green",            // M4MO_EFFECT_GREEN				5
+	"blue",             // M4MO_EFFECT_BLUE					6
+	"pink", 			// M4MO_EFFECT_PINK					7
+	"yellow", 			// M4MO_EFFECT_YELLOW			    8
+	"purple",			// M4MO_EFFECT_PURPLE			    9
+	"whiteboard", 		// M4MO_EFFECT_ANTIQUE			    10
+	"negative", 		// M4MO_EFFECT_NEGATIVE				11
+	"solarize",         // M4MO_EFFECT_SOLARIZATION1		12
+	"solar2",           // M4MO_EFFECT_SOLARIZATION2		13
+	"solar3",          	//  M4MO_EFFECT_SOLARIZATION3		14
+	"solar4",           // M4MO_EFFECT_SOLARIZATION4		15
+	"blackboard",      	// M4MO_EFFECT_EMBOSS			    16
+	"posterize",        // M4MO_EFFECT_OUTLINE			    17
+	"aqua",             // M4MO_EFFECT_AQUA			   		18  
+	"maxplus" 			
+};   
 
-#define MAX_COLOR_EFFECTS 15
+#define MAX_COLOR_EFFECTS 19
 
 static const char* scene_mode[] = {
-    "minus1", // to match camera_effect_t 
-    "auto", //CAMERA_SCENE_OFF= 1,  /* This list must match aeecamera.h */
-    "asd", //CE147_SCENE_ASD,
-    "sunset", //CAMERA_SCENE_SUNSET,
-    "dawn", //CAMERA_SCENE_DAWN,
-    "candlelight", //CAMERA_SCENE_CANDLELIGHT.
-    "beach", //CAMERA_SCENE_BEACH_SNOW,
-    "against-light", //CAMERA_AGAINST_LIGHT ,    
-    "text", //CAMERA_SCENE_TEXT,
-    "night", //CAMERA_SCENE_NIGHT,
-    "landscape", //CAMERA_SCENE_LANDSCAPE,
-    "fireworks", //CAMERA_SCENE_FIREWORK,
-    "portrait", //CAMERA_PORTRAIT,
-    "fall", //CAMERA_SCENE_FALL,    
-    "indoors", //CAMERA_SCENE_INDOORS,
-    "action",//CAMERA_SCENE_SPORTS,
-    "maxplus" // CAMERA_SCENE_MAX_PLUS_1
+	"minus1", 			// to match camera_effect_t 
+	"auto",             // M4MO_SCENE_NORMAL			1
+	"portrait", 		// M4MO_SCENE_PORTRAIT			2
+	"landscape", 		// M4MO_SCENE_LANDSCAPE			3
+	"sports",			// M4MO_SCENE_SPORTS			4
+	"party",     		// M4MO_SCENE_PARTY_INDOOR		5
+	"beach",            // M4MO_SCENE_BEACH_SNOW		6
+	"sunset", 			// M4MO_SCENE_SUNSET			7
+	"dusk-dawn", 		// M4MO_SCENE_DUSK_DAWN			8
+	"fall", 		// M4MO_SCENE_FALL_COLOR		9
+	"night", 			// M4MO_SCENE_NIGHT				10
+	"fireworks", 		// M4MO_SCENE_FIREWORK			11	
+	"text", 			// M4MO_SCENE_TEXT				12
+	"candlelight", 		// M4MO_SCENE_CANDLELIGHT		13
+	"back-light", 		// M4MO_SCENE_BACKLIGHT			14   
+	"maxplus" 			
 };
 
-#define MAX_SCENE_MODE 16
+#define MAX_SCENE_MODE 15
 
 static const char* flash_mode[] = {
-    "minus1", // to match camera_effect_t 
-    "off", //CAMERA_FLASH_OFF = 1,  /* This list must match aeecamera.h */
-    "on", //CAMERA_FLASH_ON,
-    "auto", //CAMERA_FLASH_AUTO,
-    "maxplus" // CAMERA_FLASH_MAX_PLUS_1
+	"minus1", 			// to match camera_effect_t 
+	"off", 				// M4MO_FLASH_CAPTURE_OFF		1
+	"on",				// M4MO_FLASH_CAPTURE_ON		2
+	"auto", 			// M4MO_FLASH_CAPTURE_AUTO		3
+	"torch",            // M4MO_FLASH_TORCH		        4
+	"maxplus" 			// CAMERA_FLASH_MAX_PLUS_1
 };
 
-#define MAX_FLASH_MODE 4
+#define MAX_FLASH_MODE 5
 
 static const char* focus_mode[] = {
-    "minus1", // to match focus_mode 
-    "auto", //CAMERA_FOCUS_AUTO = 1,  /* This list must match aeecamera.h */
-    "macro", //CAMERA_FOCUS_MACRO,
-    "facedetection", //CAMERA_FOCUS_FACEDETECT,
-    "maxplus" // CAMERA_FOCUS_MAX_PLUS_1
+	"minus1", 			// to match focus_mode 
+	"auto",				//M4MO_AF_MODE_NORMAL 	1
+	"macro",		 	//M4MO_AF_MODE_MACRO  	2
+	"maxplus" 			//CAMERA_FOCUS_MAX_PLUS_1
 };
 
-#define MAX_FOCUS_MODE 4
+#define MAX_FOCUS_MODE 3
 
 static const char* metering_mode[] = {
-    "minus1", // to match metering 
-    "matrix", //CAMERA_METERING_MATRIX = 1,  /* This list must match aeecamera.h */    
-    "center", //CAMERA_METERING_CENTER,
-    "spot", //CAMERA_METERING_SPOT,
-    "maxplus" // CAMERA_METERING_MAX_PLUS_1
+	"minus1", 			// to match metering 
+	"matrix",			//M4MO_PHOTOMETRY_AVERAGE		1  
+	"center", 			//M4MO_PHOTOMETRY_CENTER		2
+	"spot", 			//M4MO_PHOTOMETRY_SPOT			3
+	"maxplus" 			//CAMERA_METERING_MAX_PLUS_1
 };
 
 #define MAX_METERING 4
@@ -177,44 +182,61 @@ static const char* anti_banding_values[] = {
     "auto",	//CAMERA_ANTIBANDING_AUTO,
     "max"		//CAMERA_MAX_ANTIBANDING,
 };
+
 #define MAX_ANTI_BANDING_VALUES 5
-#define MAX_ZOOM 12
+
+static const char* iso_mode[] = {
+	"minus1", 			// to match metering
+	"auto",   			//M4MO_ISO_AUTO					1
+	"50",     			//M4MO_ISO_50					2
+	"100",    			//M4MO_ISO_100					3
+	"200",    			//M4MO_ISO_200					4
+	"400",    			//M4MO_ISO_400					5
+	"800",     			//M4MO_ISO_800					6
+	"maxplus"
+};
+
+#define MAX_ISO_VALUES 7	
+
+#define MAX_ZOOM 				12
 
 #define CLEAR(x) memset (&(x), 0, sizeof (x))
 
 
-#define AF_START           1
-#define AF_STOP            2
+#define AF_START           		1
+#define AF_STOP            		2
+#define AF_RELEASE          	3
 
-#define FLASH_AF_OFF          1
-#define FLASH_AF_ON           2
-#define FLASH_AF_AUTO         3
-#define FLASH_AF_TORCH        4
+#define FLASH_AF_OFF          	1
+#define FLASH_AF_ON           	2
+#define FLASH_AF_AUTO         	3
+#define FLASH_AF_TORCH        	4
 
-#define FLASH_MOVIE_OFF       1
-#define FLASH_MOVIE_ON        2
+#define FLASH_MOVIE_OFF       	1
+#define FLASH_MOVIE_ON        	2
+#define FLASH_MOVIE_AUTO		3
 
-#define ISO_AUTO        1
-#define ISO_50          2
-#define ISO_100         3
-#define ISO_200         4
-#define ISO_400         5
-#define ISO_800         6
+#define ISO_AUTO        		1	// M4MO_ISO_AUTO				1
+#define ISO_50          		2   // M4MO_ISO_50					2
+#define ISO_100         		3   // M4MO_ISO_100				3
+#define ISO_200         		4   // M4MO_ISO_200				4
+#define ISO_400         		5   // M4MO_ISO_400				5
+#define ISO_800         		6   // M4MO_ISO_800				6
 
-#define JPEG_SUPERFINE        1
-#define JPEG_FINE             2
-#define JPEG_NORMAL           3
-#define JPEG_ECONOMY          4
-#define JPEG_SUPERFINE_limit  75   
-#define JPEG_FINE_limit       50
-#define JPEG_NORMAL_limit     25
+#define JPEG_SUPERFINE        	1
+#define JPEG_FINE             	2
+#define JPEG_NORMAL           	3
+#define JPEG_ECONOMY          	4
+#define JPEG_SUPERFINE_limit  	75   
+#define JPEG_FINE_limit       	50
+#define JPEG_NORMAL_limit     	25
 
-#define YUV_SUPERFINE   100
-#define YUV_FINE        75
-#define YUV_ECONOMY     50
-#define YUV_NORMAL      25
+#define YUV_SUPERFINE   		100
+#define YUV_FINE        		75
+#define YUV_ECONOMY     		50
+#define YUV_NORMAL      		25
 
-#define DISPLAYFPS 15
+#define DISPLAYFPS 				15
 
 int CameraHal::camera_device = NULL;
 wp<CameraHardwareInterface> CameraHal::singleton;
@@ -374,15 +396,15 @@ void CameraHal::initDefaultParameters()
         p.set(p.KEY_SUPPORTED_JPEG_THUMBNAIL_SIZES, "160x120,0x0");    
         p.set(p.KEY_SUPPORTED_WHITE_BALANCE, "auto,daylight,cloudy-daylight,incandescent,fluorescent");
         p.set(p.KEY_SUPPORTED_ANTIBANDING, "off");
-        p.set(p.KEY_SUPPORTED_EFFECTS, "none,sharpen,purple,negative,sepia,aqua,green-tint,blue-tint,pink,yellow,mono,red-tint,bw,antique");
-        p.set(p.KEY_SUPPORTED_SCENE_MODES,"auto,asd,sunset,dawn,candlelight,beach,against-light,text,night,landscape,fireworks,portrait,fall,indoors,action");    
-        p.set(p.KEY_SUPPORTED_FLASH_MODES, "off,on,auto");
-        p.set(p.KEY_SUPPORTED_FOCUS_MODES, "auto,macro,facedetection");
+        p.set(p.KEY_SUPPORTED_EFFECTS, "none,purple,negative,sepia,aqua,green,blue,pink,yellow,mono,red,");
+        p.set(p.KEY_SUPPORTED_SCENE_MODES,"auto,sunset,candlelight,beach,text,night,landscape,fireworks,portrait,fall,party,action");    
+        p.set(p.KEY_SUPPORTED_FLASH_MODES, "off,on,auto,torch");
+        p.set(p.KEY_SUPPORTED_FOCUS_MODES, "auto,macro");
         p.set(p.KEY_ZOOM_SUPPORTED, "true");
     
         //Preview
         p.setPreviewSize(PREVIEW_WIDTH, PREVIEW_HEIGHT);
-        p.set(p.KEY_PREVIEW_FPS_RANGE, "7000,35000");
+        p.set(p.KEY_PREVIEW_FPS_RANGE, "7000,30000");
         p.set(p.KEY_PREVIEW_FORMAT, "yuv420sp");
     
         //Picture
@@ -431,7 +453,7 @@ void CameraHal::initDefaultParameters()
         p.set("saturation","4");
         p.set("sharpness","4");
         p.set("wdr","1");
-        p.set("anti-shake","1");
+        p.set("anti-shake","0");
         p.set("metering","center");    
         p.set("videoinput","0");
         p.set("CamcorderPreviewMode","0");
@@ -627,7 +649,9 @@ void CameraHal::previewThread()
                     mNotifyCb(CAMERA_MSG_FOCUS,false,0,mCallbackCookie);
                     mAFState = false;
                 }
-            } else {
+            } 
+#ifndef NOWPLUS_MOD
+			else {
                 if(mASDMode) {
                     frameCount++;
                     if(!(frameCount%20)) {
@@ -642,7 +666,7 @@ void CameraHal::previewThread()
                     
                 }
             }
-
+#endif
             //process 1 preview frame
             nextPreview();
 
@@ -2371,6 +2395,7 @@ status_t CameraHal::setEffect(const char* effect)
 
 status_t CameraHal::setAntiBanding(const char* antibanding)
 {
+#ifndef NOWPLUS_MOD	//no antibandig on nowplus
     if(camera_device && mCameraIndex == MAIN_CAMERA) {
         int antibandingValue =1;
         int i = 0;
@@ -2401,7 +2426,7 @@ status_t CameraHal::setAntiBanding(const char* antibanding)
             }
         }
     }
-    
+#endif
     return NO_ERROR;
 }
 
@@ -2729,6 +2754,7 @@ status_t CameraHal::setWDRMode(int wdr)
 
 status_t CameraHal::setAntiShakeMode(int antiShake)
 {
+#ifndef NOWPLUS_MOD
     if(camera_device && mCameraIndex == MAIN_CAMERA)
     {
         struct v4l2_control vc;
@@ -2747,7 +2773,7 @@ status_t CameraHal::setAntiShakeMode(int antiShake)
     
         mPreviousAntiShake = antiShake;
     }
-
+#endif
     return NO_ERROR;    
 }
 
