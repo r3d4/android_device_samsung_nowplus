@@ -1647,7 +1647,7 @@ status_t CameraHal::setOverlay(const sp<Overlay> &overlay)
 {
     LOG_FUNCTION_NAME
 
-    LOGV("%s : overlay = %p", __func__, overlay->getHandleRef());
+    //LOGV("%s : overlay = %p", __func__, overlay->getHandleRef());
     
     // De-alloc any stale data
     if ( mOverlay != NULL ) {
