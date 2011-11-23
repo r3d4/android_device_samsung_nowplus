@@ -25,6 +25,7 @@
 */
 #undef LOG_TAG
 #define LOG_TAG "CameraHal"
+#define LOG_NDEBUG 	0
 
 #include "CameraHal.h"
 #include <cutils/properties.h>
@@ -389,7 +390,7 @@ void CameraHal::initDefaultParameters()
         //Support Info
         p.set(p.KEY_SUPPORTED_PREVIEW_SIZES, "320x240,640x480");
         p.set(p.KEY_SUPPORTED_PREVIEW_FORMATS, "yuv422i-uyvy,yuv420sp");
-        p.set(p.KEY_SUPPORTED_PREVIEW_FPS_RANGE, "(7000,35000)");
+        p.set(p.KEY_SUPPORTED_PREVIEW_FPS_RANGE, "(7000,30000)");
         p.set(p.KEY_SUPPORTED_PREVIEW_FRAME_RATES, "30");
         p.set(p.KEY_SUPPORTED_PICTURE_SIZES, "2560x1920,2048x1536,1600x1200,1280x960");
         p.set(p.KEY_SUPPORTED_PICTURE_FORMATS, "jpeg");
@@ -430,7 +431,7 @@ void CameraHal::initDefaultParameters()
         p.set(p.KEY_SCENE_MODE, "auto");
         p.set(p.KEY_FLASH_MODE, "off");
         p.set(p.KEY_FOCUS_MODE, "auto");
-        p.set(p.KEY_FOCAL_LENGTH, "3.546");
+        p.set(p.KEY_FOCAL_LENGTH, "4.61");
         p.set(p.KEY_HORIZONTAL_VIEW_ANGLE, "51.2");
         p.set(p.KEY_VERTICAL_VIEW_ANGLE, "39.4");    
         p.set(p.KEY_FOCUS_DISTANCES, "0.10,1.20,Infinity");
@@ -1451,6 +1452,7 @@ void CameraHal::nextPreview()
         if(((*Neon_Rotate)(neon_args)) < 0) {
             LOGE("Error in Rotation 90\n");                
         }        
+		LOGE("nextPreview() OMAP_SCALE_CDD\n");
     }
 #endif
 

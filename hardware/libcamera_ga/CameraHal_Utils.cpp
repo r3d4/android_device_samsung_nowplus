@@ -25,6 +25,7 @@
 */
 
 #define LOG_TAG "CameraHalUtils"
+#define LOG_NDEBUG 	0
 
 #include "CameraHal.h"
 #include <cutils/properties.h> // for property_get for the voice recognition mode switch
