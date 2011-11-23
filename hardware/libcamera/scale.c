@@ -289,6 +289,7 @@ OMX_ERRORTYPE Fill_LCMLInitParams(OMX_U16 arr[], LCML_DSP *plcml_Init, int inWid
     arr[index] = END_OF_CR_PHASE_ARGS;
     plcml_Init->pCrPhArgs = arr;
     LOG_FUNCTION_NAME_EXIT
+
 EXIT:
     return eError;
 }
@@ -392,7 +393,7 @@ int scale_process(void* inBuffer, int inWidth, int inHeight, void* outBuffer, in
 	LOGV("444444444444444444444444444444444444444444444444444444\n");
     return 0;
 
-    
+EXIT:   
 OMX_CAMERA_BAIL_CMD:
     return -1;
 }

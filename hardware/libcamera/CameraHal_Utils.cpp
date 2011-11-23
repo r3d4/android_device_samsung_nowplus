@@ -27,6 +27,11 @@
 #define LOG_TAG "CameraHalUtils"
 
 #include "CameraHal.h"
+
+ extern "C" {
+    #include "color_convert.h"
+ }
+
 //[ 2010 05 02 03
 #include <cutils/properties.h> // for property_get for the voice recognition mode switch
 //]
@@ -347,7 +352,6 @@ s_fmt_fail:
 		return 0;
 	}
 
-
 	int CameraHal::CapturePicture()
 	{
 		int image_width, image_height, preview_width, preview_height;
@@ -362,7 +366,7 @@ s_fmt_fail:
 		sp<MemoryBase> 		mFinalPictureBuffer;
 		sp<MemoryHeapBase>  mJPEGPictureHeap;
 		sp<MemoryBase>		mJPEGPictureMemBase;
-#if OMAP_SCALE
+#if 1//OMAP_SCALE
 		sp<MemoryHeapBase> 	TempHeapBase;
 		sp<MemoryBase>	 	TempBase;
 		sp<IMemoryHeap> 	TempHeap;
@@ -425,7 +429,8 @@ s_fmt_fail:
 			capture_len = (capture_len & 0xfffff000) + 0x1000;
 		}
 
-		HAL_PRINT("pictureFrameSize = 0x%x = %d\n", capture_len, capture_len);
+		HAL_PRINT("capture: %s mode, pictureFrameSize = 0x%x = %d\n", 
+            (mCamera_Mode == CAMERA_MODE_JPEG)?"jpeg":"yuv", capture_len, capture_len);
 
 		mPictureHeap = new MemoryHeapBase(capture_len);
 
@@ -630,6 +635,28 @@ s_fmt_fail:
 			sp<IMemoryHeap> heap = mPictureBuffer->getMemory(&newoffset, &newsize);
 			uint8_t* pYUVDataBuf = (uint8_t *)heap->base() + newoffset ;
 			LOGD("PictureThread: generated a picture, yuv_buffer=%p yuv_len=%d\n",pYUVDataBuf,capture_len);
+            dum_to_file("neon_in1.yuv", (uint8_t*)pYUVDataBuf, mPreviewWidth*mPreviewHeight*2);	
+            
+#if 1       //dump rgb 
+            //640x480 yuv2: 2 pixel = 4byte, rgb24: 2pixel=6byte
+            #define RGB_BIT_PER_PIXEL     24
+            #define YUV2_BIT_PER_PIXEL    16
+
+            size_t rgb24size= image_width*image_height*(RGB_BIT_PER_PIXEL>>3);
+			TempHeapBase = new MemoryHeapBase(rgb24size);
+			TempBase = new MemoryBase(TempHeapBase, 0, rgb24size);
+			TempHeap = TempBase->getMemory(&newoffset, &newsize);            
+            uint8_t* pRgbData = (uint8_t*)TempHeap->base();
+                       
+            yuv2_to_rgb((uint8_t*)pYUVDataBuf, pRgbData, rgb24size );
+            write_to_bmp("input.bmp", pRgbData, image_width, image_height, rgb24size, RGB_BIT_PER_PIXEL);	
+            //dum_to_file("in.rgb", pRgbData, rgb24size);	
+            
+            TempHeapBase.clear();
+			TempBase.clear();
+			TempHeap.clear();
+#endif   
+
 #if OMAP_SCALE
 			TempHeapBase = new MemoryHeapBase(mFrameSizeConvert);
 			TempBase = new MemoryBase(TempHeapBase,0,mFrameSizeConvert);
@@ -638,22 +665,13 @@ s_fmt_fail:
 			{
 				LOGE("scale_process() failed\n");
 			}
+            dum_to_file("neon_in2.yuv", (uint8_t*)TempHeap->base(), mPreviewWidth*mPreviewHeight*2);
 #endif
 
 #if TIMECHECK
 			PPM("YUV COLOR ROTATION STARTED\n");
 #endif                   
-
-#if 1	//YUV dump code for testing
-			FILE* fIn = NULL;	
-			fIn = fopen("/data/output.yuv", "w");
-			if ( fIn == NULL ) 	  
-			{ 		 
-				LOGE("Error: failed to open the file for writing\n");		 
-			}		
-			fwrite((uint8_t*)mVGANewheap->base(), 1, mPreviewWidth*mPreviewHeight*2, fIn);	   
-			fclose(fIn);
-#endif
+ 
 
 			/*
 			   	for VGA capture case
@@ -685,6 +703,7 @@ s_fmt_fail:
 
 				}							    					
 			}
+            dum_to_file("neon_out.yuv", (uint8_t*)mVGANewheap->base(), mPreviewWidth*mPreviewHeight*2);
 #if OMAP_SCALE
 			TempHeapBase.clear();
 			TempBase.clear();

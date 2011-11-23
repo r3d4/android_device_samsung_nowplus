@@ -334,7 +334,7 @@ namespace android {
 
 		Neon_Rotate = (NEON_fpo) dlsym(pTIrtn, "Neon_RotateCYCY");
 
-		if ((error = dlerror()) != NULL) {
+		if (Neon_Rotate == NULL) {
 			LOGE("Couldnot find  Neon_RotateCYCY symbol, error=%s, addr= %p\n", error, Neon_Rotate);
 			dlclose(pTIrtn);
 			pTIrtn = NULL;
@@ -348,10 +348,6 @@ namespace android {
 		{
 			mVideoBuffer[i] = 0;
 			buffers_queued_to_dss[i] = 0;
-#ifdef VT_BACKGROUND_SOLUTION
-			mVTHeaps[i] = 0;
-			mVTBuffer[i] = 0;
-#endif //VT_BACKGROUND_SOLUTION
 		}
 
 		if(CameraCreate(cameraId) < 0) {
@@ -431,17 +427,6 @@ namespace android {
 			free((NEON_FUNCTION_ARGS *)neon_args);
 		}	
 #endif //EVE_CAM
-
-#ifdef VT_BACKGROUND_SOLUTION
-		for(int i = 0; i < VIDEO_FRAME_COUNT_MAX; i++)
-		{
-			if(mVTHeaps[i] != 0)
-			{
-				mVTHeaps[i].clear();
-				mVTBuffer[i].clear();
-			}
-		}
-#endif //VT_BACKGROUND_SOLUTION
 
 		mRecordEnabled = false; // Eclair HAL
 		mFalsePreview =false;   // Eclair HAL
@@ -643,7 +628,8 @@ namespace android {
 
 			if( mPreviewRunning && !m_chk_dataline_end )
 			{
-				if(mASDMode)
+#ifndef MOD   
+            if(mASDMode)
 				{
 					frameCount++;
 					if(!(frameCount%20))
@@ -654,15 +640,16 @@ namespace android {
 						{
 							LOGE("getscene fail\n");
 						}
-#ifndef MOD                        
+                     
 #ifdef OMAP_ENHANCEMENT	 
 						mNotifyCb(CAMERA_MSG_ASD,vc.value,0,mCallbackCookie);
 #endif
-#endif
+
 						frameCount = 0;
 					}
 
 				}
+#endif            
 				//process 1 preview frame
 				if(mOverlay != NULL)
 					nextPreview();
@@ -1295,18 +1282,10 @@ exit:
 				cropValue /= 2;
 				mOverlay->setCrop(cropValue,0,w-cropValue,h);
 			}
-#ifdef VT_BACKGROUND_SOLUTION
-			buffer_count = mOverlay->getBufferCount();
-			if(buffer_count > VIDEO_FRAME_COUNT_MAX)
-				buffer_count = VIDEO_FRAME_COUNT_MAX;
-#endif //VT_BACKGROUND_SOLUTION
 		}
 		else
 		{
 			LOGD("WARNING, mOverlay is NULL!!\n");
-#ifdef VT_BACKGROUND_SOLUTION
-			buffer_count = VIDEO_FRAME_COUNT_MAX;
-#endif //VT_BACKGROUND_SOLUTION
 		}
 
 		mPreviewFrameSize = w * h * 2;
@@ -1316,9 +1295,9 @@ exit:
 		}
 		HAL_PRINT("mPreviewFrameSize = 0x%x = %d", mPreviewFrameSize, mPreviewFrameSize);
 
-#ifndef VT_BACKGROUND_SOLUTION
+
 		buffer_count = mOverlay->getBufferCount();
-#endif //VT_BACKGROUND_SOLUTION
+
 		nBuffToStartDQ = buffer_count -1;    
 		HAL_PRINT("number of buffers = %d\n", buffer_count);
 
@@ -1355,10 +1334,7 @@ exit:
 				LOGE("VIDIOC_QUERYBUF Failed\n");
 				goto fail_loop;
 			}
-#ifdef VT_BACKGROUND_SOLUTION
-			if(mOverlay != NULL)
-			{
-#endif //VT_BACKGROUND_SOLUTION
+
 #ifndef MOD
 				if(mCameraIndex == VGA_CAMERA && mCamMode == VT_MODE)
 				{
@@ -1426,40 +1402,6 @@ exit:
 				{
 					LOGI("CameraStart::Could not queue buffer %d to Camera because it is being held by Overlay\n", i);
 				}
-#ifdef VT_BACKGROUND_SOLUTION   
-			}
-			else
-			{
-				if(mVTHeaps[i] == 0)
-				{
-					mVTHeaps[i] = new MemoryHeapBase(mPreviewFrameSize);
-					mVTBuffer[i] = new MemoryBase(mVTHeaps[i], 0, mPreviewFrameSize);
-					LOGD("mVTHeaps[%d]: ID:%d,Base:[%p],size:%d", i, mVTHeaps[i]->getHeapID(), mVTHeaps[i]->getBase() ,mVTHeaps[i]->getSize());
-					LOGD("mVTBuffer[%d]: Pointer[%p]", i, mVTBuffer[i]->pointer());
-				} 	
-				//Assign Pointer
-				v4l2_cam_buffer[i].m.userptr = (long unsigned int)mVTBuffer[i]->pointer();
-
-				// Check Memory
-				strcpy((char *)v4l2_cam_buffer[i].m.userptr, "hello");
-				if (strcmp((char *)v4l2_cam_buffer[i].m.userptr, "hello")) 
-				{
-					LOGI("problem with buffer\n");
-					goto fail_loop;
-				}
-
-				if (ioctl(camera_device, VIDIOC_QBUF, &v4l2_cam_buffer[i]) < 0) 
-				{
-					LOGE("CameraStart VIDIOC_QBUF Failed: %s", strerror(errno) );
-					goto fail_loop;
-				}
-				else    // Added for CSR - OMAPS00242402
-				{
-		      		buffers_queued_to_camera_driver[i] = 1;
-					nCameraBuffersQueued++;	
-				}
-			}
-#endif //VT_BACKGROUND_SOLUTION    
 		}
 
 		type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -1559,19 +1501,6 @@ fail_reqbufs:
 				buffers_queued_to_dss[i] = 0;
 			}
 			
-#ifdef VT_BACKGROUND_SOLUTION        
-			for(i = 0; i < VIDEO_FRAME_COUNT_MAX; i++)
-			{
-				if(mVTHeaps[i] != 0)
-				{
-					mVTHeaps[i].clear();
-					mVTBuffer[i].clear();
-					mVTHeaps[i] = 0;
-					mVTBuffer[i] = 0;
-				}
-			} 
-#endif //VT_BACKGROUND_SOLUTION
-
 			// Clearing of heap
 			mVideoConversionHeap.clear();
 			for( int i = 0; i < VIDEO_FRAME_COUNT_MAX ; i++)		// Latona TD/Heron : VT_BACKGROUND_SOLUTION
@@ -2336,13 +2265,6 @@ exit:
 		int w,h;
 		int i = 0;
 		const char *error = 0;
-#ifdef VT_BACKGROUND_SOLUTION    
-		if(mOverlay == NULL)
-		{
-			LOGE("Overlay is NULL. Cannot start recording. \n");
-			return UNKNOWN_ERROR;
-		} 
-#endif //VT_BACKGROUND_SOLUTION   
 
 		for(i = 0; i < VIDEO_FRAME_COUNT_MAX; i++)
 		{

@@ -33,24 +33,20 @@
 */
 #define LOG_TAG "JpegEncoder"
 
-#define JPEG_ENCODER_DUMP_INPUT_AND_OUTPUT 1
-
 #include "JpegEncoder.h"
 #include <utils/Log.h>
+
+#define PRINTF LOGD
+
+#define DUMP_DIR "/dump"
+
+#define JPEG_ENCODER_DUMP_INPUT_AND_OUTPUT 1
+
+#define OPTIMIZE 0  
+               //
 #if JPEG_ENCODER_DUMP_INPUT_AND_OUTPUT
 #include "SkStream.h"
 #endif
-
-
-#define PRINTF LOGD
-#define NO_EXIF //r3d4 dsp will fail with exif
-
-
-
-
-//[ 2010 05 02 10
-//#define OPTIMIZE 1                 //
-#define OPTIMIZE 0   
 
 #if JPEG_ENCODER_DUMP_INPUT_AND_OUTPUT
 	int eOutputCount = 0;
@@ -121,7 +117,7 @@ void JpegEncoder::FillBufferDone(OMX_U8* pBuffer, OMX_U32 size)
 #if JPEG_ENCODER_DUMP_INPUT_AND_OUTPUT
     
     char path[50];
-    snprintf(path, sizeof(path), "/temp/JEO_%d.jpg", eOutputCount);
+    snprintf(path, sizeof(path), "%s/JEO_%d.jpg", DUMP_DIR ,eOutputCount);
 
     PRINTF("\nrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr");
     
@@ -149,7 +145,7 @@ void JpegEncoder::EventHandler(OMX_HANDLETYPE hComponent,
                                             OMX_PTR pEventData)
 {
 
-    //PRINTF("\n\nEventHandler:: eEvent = %x, nData1 = %x, nData2 = %x\n\n", eEvent, (unsigned int)nData1, (unsigned int)nData2);
+    PRINTF("\n\nEventHandler:: eEvent = %x, nData1 = %x, nData2 = %x\n\n", eEvent, (unsigned int)nData1, (unsigned int)nData2);
 
     switch ( eEvent ) {
 
@@ -158,21 +154,21 @@ void JpegEncoder::EventHandler(OMX_HANDLETYPE hComponent,
             /* We do not want to apply them in cases when these conditions are not met. */
             if ((nData1 == OMX_CommandStateSet) && (nData2 == OMX_StateIdle))
             {
-                //PRINTF ("Component State Changed To OMX_StateIdle\n");
+                PRINTF ("Component State Changed To OMX_StateIdle\n");
                 iLastState = iState;
                 iState = STATE_IDLE;
                 sem_post(semaphore) ;
             }
             else if ((nData1 == OMX_CommandStateSet) && (nData2 == OMX_StateExecuting))
             {
-                //PRINTF ("Component State Changed To OMX_StateExecuting\n");
+                PRINTF ("Component State Changed To OMX_StateExecuting\n");
                 iLastState = iState;
                 iState = STATE_EXECUTING;
                 sem_post(semaphore) ;
             }
             else if ((nData1 == OMX_CommandStateSet) && (nData2 == OMX_StateLoaded))
             {
-                //PRINTF ("Component State Changed To OMX_StateLoaded\n");
+                PRINTF ("Component State Changed To OMX_StateLoaded\n");
                 iLastState = iState;
                 iState = STATE_LOADED;
                 sem_post(semaphore) ;
@@ -180,7 +176,7 @@ void JpegEncoder::EventHandler(OMX_HANDLETYPE hComponent,
             break;
 
         case OMX_EventError:
-            //PRINTF ("\n\n\nOMX Component  reported an Error!!!!\n\n\n");
+            PRINTF ("\n\n\nOMX Component  reported an Error!!!!\n\n\n");
             iLastState = iState;
             iState = STATE_ERROR;
             OMX_SendCommand(hComponent, OMX_CommandStateSet, OMX_StateInvalid, NULL);
@@ -197,26 +193,25 @@ void JpegEncoder::EventHandler(OMX_HANDLETYPE hComponent,
 bool JpegEncoder::StartFromLoadedState()
 {
 
-	int nRetval;
-	int nIndex1;
-	int nIndex2;
-	int bitsPerPixel;
-	int nMultFactor = 0;
-	int nHeightNew, nWidthNew;
-	char strTIJpegEnc[] = "OMX.TI.JPEG.encoder";
-	char strQFactor[] = "OMX.TI.JPEG.encoder.Config.QFactor";
-	char strPPLibEnable[] = "OMX.TI.JPEG.encoder.Config.PPLibEnable";
-	char converstionFlag[] = "OMX.TI.JPEG.encoder.Config.ConversionFlag";
+    int nRetval;
+    int nIndex1;
+    int nIndex2;
+    int bitsPerPixel;
+    int nMultFactor = 0;
+    int nHeightNew, nWidthNew;
+    char strTIJpegEnc[] = "OMX.TI.JPEG.encoder";
+    char strQFactor[] = "OMX.TI.JPEG.encoder.Config.QFactor";
+    char strColorFormat[] = "OMX.TI.JPEG.encoder.Config.ColorFormatConvertion_420pTo422i";
+    char strPPLibEnable[] = "OMX.TI.JPEG.encoder.Config.PPLibEnable";
 
-	OMX_S32 nCompId = 300;
-	OMX_PORT_PARAM_TYPE PortType;
-	PortType.nSize = sizeof(OMX_PORT_PARAM_TYPE);
-	OMX_ERRORTYPE eError = OMX_ErrorNone;
-	OMX_IMAGE_PARAM_QFACTORTYPE QfactorType;
-	JPE_CONVERSION_FLAG_TYPE conversionFlagType = JPE_CONV_NONE;
-	OMX_BOOL bPPLibEnable;
-	OMX_INDEXTYPE nCustomIndex = OMX_IndexMax;
-	OMX_CALLBACKTYPE JPEGCallBack ={OMX_JPEGE_EventHandler, OMX_JPEGE_EmptyBufferDone, OMX_JPEGE_FillBufferDone};
+    OMX_S32 nCompId = 300;
+    OMX_PORT_PARAM_TYPE PortType;
+    OMX_ERRORTYPE eError = OMX_ErrorNone;
+    OMX_IMAGE_PARAM_QFACTORTYPE QfactorType;
+    OMX_BOOL b420pTo422i;
+    OMX_BOOL bPPLibEnable;
+    OMX_INDEXTYPE nCustomIndex = OMX_IndexMax;
+    OMX_CALLBACKTYPE JPEGCallBack ={OMX_JPEGE_EventHandler, OMX_JPEGE_EmptyBufferDone, OMX_JPEGE_FillBufferDone};
 
     eError = TIOMX_Init();
     if ( eError != OMX_ErrorNone ) {
@@ -253,7 +248,6 @@ bool JpegEncoder::StartFromLoadedState()
         goto EXIT;
     }
 
-    //InPortDef.nSize = sizeof(OMX_PARAM_PORTDEFINITIONTYPE);
     InPortDef.nVersion.s.nVersionMajor = 0x1;
     InPortDef.nVersion.s.nVersionMinor = 0x0;
     InPortDef.nVersion.s.nRevision = 0x0;
@@ -264,7 +258,6 @@ bool JpegEncoder::StartFromLoadedState()
     InPortDef.bEnabled = OMX_TRUE;
     InPortDef.bPopulated = OMX_FALSE;
     InPortDef.eDomain = OMX_PortDomainImage;
-//	InPortDef.format.image.cMIMEType = "JPEGENC"
     InPortDef.format.image.pNativeRender = NULL;
     InPortDef.format.image.nFrameWidth = mWidth;
     InPortDef.format.image.nFrameHeight = mHeight;
@@ -273,12 +266,12 @@ bool JpegEncoder::StartFromLoadedState()
     InPortDef.format.image.bFlagErrorConcealment = OMX_FALSE;
     InPortDef.format.image.eCompressionFormat = OMX_IMAGE_CodingUnused;
     InPortDef.nBufferSize = mInBuffSize;
-	if(mIsPixelFmt420p){
-		InPortDef.format.image.eColorFormat = OMX_COLOR_FormatYUV420PackedPlanar;	
-	}
-	else{
-		InPortDef.format.image.eColorFormat = OMX_COLOR_FormatCbYCrY;
-	}
+    if(mIsPixelFmt420p){
+        InPortDef.format.image.eColorFormat = OMX_COLOR_FormatYUV420PackedPlanar;
+    }
+    else{
+        InPortDef.format.image.eColorFormat = OMX_COLOR_FormatCbYCrY;
+    }
 
     if (InPortDef.eDir == nIndex1 ) {
         InPortDef.nPortIndex = nIndex1;
@@ -307,7 +300,6 @@ bool JpegEncoder::StartFromLoadedState()
         goto EXIT;
     }
 
-    //OutPortDef.nSize = sizeof(OMX_PARAM_PORTDEFINITIONTYPE);
     OutPortDef.nVersion.s.nVersionMajor = 0x1;
     OutPortDef.nVersion.s.nVersionMinor = 0x0;
     OutPortDef.nVersion.s.nRevision = 0x0;
@@ -325,12 +317,12 @@ bool JpegEncoder::StartFromLoadedState()
     OutPortDef.format.image.nSliceHeight = -1;
     OutPortDef.format.image.bFlagErrorConcealment = OMX_FALSE;
     OutPortDef.format.image.eCompressionFormat = OMX_IMAGE_CodingJPEG;
-	if(mIsPixelFmt420p){
-		OutPortDef.format.image.eColorFormat = OMX_COLOR_FormatYUV420PackedPlanar;	
-	}
-	else{
-		OutPortDef.format.image.eColorFormat = OMX_COLOR_FormatCbYCrY;
-	}
+    if(mIsPixelFmt420p){
+        OutPortDef.format.image.eColorFormat = OMX_COLOR_FormatYUV420PackedPlanar;	
+    }
+    else{
+        OutPortDef.format.image.eColorFormat = OMX_COLOR_FormatCbYCrY;
+    }
 
     OutPortDef.nBufferSize = mOutBuffSize;
     
@@ -367,30 +359,27 @@ bool JpegEncoder::StartFromLoadedState()
         goto EXIT;
     }
 
-	if(mIsPixelFmt420p){
-		
-		conversionFlagType = JPE_CONV_NONE; //JPE_CONV_YUV420P_YUV422ILE;
+    if(mIsPixelFmt420p){
+        b420pTo422i = OMX_TRUE;
 
-		eError = OMX_GetExtensionIndex(pOMXHandle, converstionFlag, (OMX_INDEXTYPE*)&nCustomIndex);
-		if ( eError != OMX_ErrorNone ) {
-		    PRINTF("%d::APP_Error at function call: %x\n", __LINE__, eError);
-		    goto EXIT;
-		}
-		
-		eError = OMX_SetConfig (pOMXHandle, nCustomIndex, &conversionFlagType);
-		if ( eError != OMX_ErrorNone ) {
-		    PRINTF("%d::APP_Error at function call: %x\n", __LINE__, eError);
-		    goto EXIT;
-		}
-	}
+        eError = OMX_GetExtensionIndex(pOMXHandle, strColorFormat, (OMX_INDEXTYPE*)&nCustomIndex);
+        if ( eError != OMX_ErrorNone ) {
+            PRINTF("%d::APP_Error at function call: %x\n", __LINE__, eError);
+            goto EXIT;
+        }
 
-#if 0
+        eError = OMX_SetConfig (pOMXHandle, nCustomIndex, &b420pTo422i);
+        if ( eError != OMX_ErrorNone ) {
+            PRINTF("%d::APP_Error at function call: %x\n", __LINE__, eError);
+            goto EXIT;
+        }
+    }
+
     eError = OMX_SetConfig (pOMXHandle, nCustomIndex, &bPPLibEnable);
     if ( eError != OMX_ErrorNone ) {
         PRINTF("%d::APP_Error at function call: %x\n", __LINE__, eError);
         goto EXIT;
     }
-#endif
 
     eError = OMX_UseBuffer(pOMXHandle, &pInBuffHead,  InPortDef.nPortIndex,  (void *)&nCompId, InPortDef.nBufferSize, (OMX_U8*)mInputBuffer);
     if ( eError != OMX_ErrorNone ) {
@@ -418,6 +407,11 @@ bool JpegEncoder::StartFromLoadedState()
 
 EXIT:
 
+    eError = TIOMX_Deinit();
+    if ( eError != OMX_ErrorNone ) {
+        PRINTF("\nError returned by TIOMX_Deinit()\n");
+    }
+
     return false;
 
 }
@@ -425,34 +419,33 @@ EXIT:
 bool JpegEncoder::StartFromLoadedState(unsigned char* pExifBuf, int ExifSize, int ThumbWidth, int ThumbHeight)
 {
 
-	int nRetval;
-	int nIndex1;
-	int nIndex2;
-	int bitsPerPixel;
-	int nMultFactor = 0;
-	int nHeightNew, nWidthNew;
-	char strTIJpegEnc[] = "OMX.TI.JPEG.encoder";
-	char strQFactor[] = "OMX.TI.JPEG.encoder.Config.QFactor";
-	char strPPLibEnable[] = "OMX.TI.JPEG.encoder.Config.PPLibEnable";
-	char converstionFlag[] = "OMX.TI.JPEG.encoder.Config.ConversionFlag";
+    int nRetval;
+    int nIndex1;
+    int nIndex2;
+    int bitsPerPixel;
+    int nMultFactor = 0;
+    int nHeightNew, nWidthNew;
+    char strTIJpegEnc[] = "OMX.TI.JPEG.encoder";  
+    char strQFactor[] = "OMX.TI.JPEG.encoder.Config.QFactor";
+    char strColorFormat[] = "OMX.TI.JPEG.encoder.Config.ColorFormatConvertion_420pTo422i";
+    char strPPLibEnable[] = "OMX.TI.JPEG.encoder.Config.PPLibEnable";
 
-	OMX_S32 nCompId = 300;
-	OMX_PORT_PARAM_TYPE PortType;
-	PortType.nSize = sizeof(OMX_PORT_PARAM_TYPE);
-	OMX_ERRORTYPE eError = OMX_ErrorNone;
-	OMX_IMAGE_PARAM_QFACTORTYPE QfactorType;
-	JPE_CONVERSION_FLAG_TYPE conversionFlagType = JPE_CONV_NONE;
-	OMX_BOOL bPPLibEnable;
-	OMX_INDEXTYPE nCustomIndex = OMX_IndexMax;
-	OMX_CALLBACKTYPE JPEGCallBack ={OMX_JPEGE_EventHandler, OMX_JPEGE_EmptyBufferDone, OMX_JPEGE_FillBufferDone};
+    OMX_S32 nCompId = 300;
+    OMX_PORT_PARAM_TYPE PortType;
+    OMX_ERRORTYPE eError = OMX_ErrorNone;
+    OMX_IMAGE_PARAM_QFACTORTYPE QfactorType;
+    OMX_BOOL b420pTo422i;
+    OMX_BOOL bPPLibEnable;
+    OMX_INDEXTYPE nCustomIndex = OMX_IndexMax;
+    OMX_CALLBACKTYPE JPEGCallBack ={OMX_JPEGE_EventHandler, OMX_JPEGE_EmptyBufferDone, OMX_JPEGE_FillBufferDone};
 
-	//[20100110 Ratnesh EXIF Inclusion
-	IMAGE_INFO* imageinfo = NULL;
-	imageinfo = (IMAGE_INFO*)malloc(sizeof(IMAGE_INFO));
-	memset((void *)imageinfo, 0, sizeof(IMAGE_INFO));
+    //[20100110 Ratnesh EXIF Inclusion
+    IMAGE_INFO* imageinfo = NULL;
+    imageinfo = (IMAGE_INFO*)malloc(sizeof(IMAGE_INFO));
+    memset((void *)imageinfo, 0, sizeof(IMAGE_INFO));
 
-    imageinfo->nThumbnailWidth_app1 = 160;
-    imageinfo->nThumbnailHeight_app1 = 120;
+    imageinfo->nThumbnailWidth_app1 = ThumbWidth;
+    imageinfo->nThumbnailHeight_app1 = ThumbHeight;
     imageinfo->bAPP1 = OMX_TRUE;
     imageinfo->nComment = OMX_TRUE;
     imageinfo->pCommentString = "hello";
@@ -494,7 +487,6 @@ bool JpegEncoder::StartFromLoadedState(unsigned char* pExifBuf, int ExifSize, in
         goto EXIT;
     }
 
-    //InPortDef.nSize = sizeof(OMX_PARAM_PORTDEFINITIONTYPE);
     InPortDef.nVersion.s.nVersionMajor = 0x1;
     InPortDef.nVersion.s.nVersionMinor = 0x0;
     InPortDef.nVersion.s.nRevision = 0x0;
@@ -505,7 +497,6 @@ bool JpegEncoder::StartFromLoadedState(unsigned char* pExifBuf, int ExifSize, in
     InPortDef.bEnabled = OMX_TRUE;
     InPortDef.bPopulated = OMX_FALSE;
     InPortDef.eDomain = OMX_PortDomainImage;
-    //InPortDef.format.image.cMIMEType = "JPEGENC"
     InPortDef.format.image.pNativeRender = NULL;
     InPortDef.format.image.nFrameWidth = mWidth;
     InPortDef.format.image.nFrameHeight = mHeight;
@@ -514,12 +505,12 @@ bool JpegEncoder::StartFromLoadedState(unsigned char* pExifBuf, int ExifSize, in
     InPortDef.format.image.bFlagErrorConcealment = OMX_FALSE;
     InPortDef.format.image.eCompressionFormat = OMX_IMAGE_CodingUnused;
     InPortDef.nBufferSize = mInBuffSize;
-	if(mIsPixelFmt420p){
-		InPortDef.format.image.eColorFormat = OMX_COLOR_FormatYUV420PackedPlanar;	
-	}
-	else{
-		InPortDef.format.image.eColorFormat = OMX_COLOR_FormatCbYCrY;
-	}
+    if(mIsPixelFmt420p){
+        InPortDef.format.image.eColorFormat = OMX_COLOR_FormatYUV420PackedPlanar;
+    }
+    else{
+        InPortDef.format.image.eColorFormat = OMX_COLOR_FormatCbYCrY;
+    }
 
     if (InPortDef.eDir == nIndex1 ) {
         InPortDef.nPortIndex = nIndex1;
@@ -548,7 +539,6 @@ bool JpegEncoder::StartFromLoadedState(unsigned char* pExifBuf, int ExifSize, in
         goto EXIT;
     }
 
-    //OutPortDef.nSize = sizeof(OMX_PARAM_PORTDEFINITIONTYPE);
     OutPortDef.nVersion.s.nVersionMajor = 0x1;
     OutPortDef.nVersion.s.nVersionMinor = 0x0;
     OutPortDef.nVersion.s.nRevision = 0x0;
@@ -566,12 +556,12 @@ bool JpegEncoder::StartFromLoadedState(unsigned char* pExifBuf, int ExifSize, in
     OutPortDef.format.image.nSliceHeight = -1;
     OutPortDef.format.image.bFlagErrorConcealment = OMX_FALSE;
     OutPortDef.format.image.eCompressionFormat = OMX_IMAGE_CodingJPEG;
-	if(mIsPixelFmt420p){
-		OutPortDef.format.image.eColorFormat = OMX_COLOR_FormatYUV420PackedPlanar;	
-	}
-	else{
-		OutPortDef.format.image.eColorFormat = OMX_COLOR_FormatCbYCrY;
-	}
+    if(mIsPixelFmt420p){
+        OutPortDef.format.image.eColorFormat = OMX_COLOR_FormatYUV420PackedPlanar;	
+    }
+    else{
+        OutPortDef.format.image.eColorFormat = OMX_COLOR_FormatCbYCrY;
+    }
 
     OutPortDef.nBufferSize = mOutBuffSize;
     
@@ -588,153 +578,150 @@ bool JpegEncoder::StartFromLoadedState(unsigned char* pExifBuf, int ExifSize, in
         goto EXIT;
     }
 
-	if(mIsPixelFmt420p){		
-		conversionFlagType = JPE_CONV_NONE; //JPE_CONV_YUV420P_YUV422ILE;
-		
-		eError = OMX_GetExtensionIndex(pOMXHandle, converstionFlag, (OMX_INDEXTYPE*)&nCustomIndex);
-		if ( eError != OMX_ErrorNone ) {
-		    PRINTF("%d::APP_Error at function call: %x\n", __LINE__, eError);
-		    goto EXIT;
-		}
-		
-		eError = OMX_SetConfig (pOMXHandle, nCustomIndex, &conversionFlagType);
-		if ( eError != OMX_ErrorNone ) {
-		    PRINTF("%d::APP_Error at function call: %x\n", __LINE__, eError);
-		    goto EXIT;
-		}
-	}
-#if 1
-	bPPLibEnable = OMX_TRUE;
-	eError = OMX_GetExtensionIndex(pOMXHandle, strPPLibEnable, (OMX_INDEXTYPE*)&nCustomIndex);
-	if ( eError != OMX_ErrorNone ) {
-	    PRINTF("%d::APP_Error at function call: %x\n", __LINE__, eError);
-	    goto EXIT;
-	}
+    if(mIsPixelFmt420p){
+        b420pTo422i = OMX_TRUE;
 
-	eError = OMX_SetConfig (pOMXHandle, nCustomIndex, &bPPLibEnable);
-	if ( eError != OMX_ErrorNone ) {
-	    PRINTF("%d::APP_Error at function call: %x\n", __LINE__, eError);
-	    goto EXIT;
-	}
-#endif
-	eError = OMX_UseBuffer(pOMXHandle, &pInBuffHead,  InPortDef.nPortIndex,  (void *)&nCompId, InPortDef.nBufferSize, (OMX_U8*)mInputBuffer);
-	if ( eError != OMX_ErrorNone ) {
-	    PRINTF ("JPEGEnc test:: %d:error= %x\n", __LINE__, eError);
-	    goto EXIT;
-	}
+        eError = OMX_GetExtensionIndex(pOMXHandle, strColorFormat, (OMX_INDEXTYPE*)&nCustomIndex);
+        if ( eError != OMX_ErrorNone ) {
+            PRINTF("%d::APP_Error at function call: %x\n", __LINE__, eError);
+            goto EXIT;
+        }
 
-	eError = OMX_UseBuffer(pOMXHandle, &pOutBuffHead,  OutPortDef.nPortIndex,  (void *)&nCompId, OutPortDef.nBufferSize, (OMX_U8*)mOutputBuffer);
-	if ( eError != OMX_ErrorNone ) {
-	    PRINTF ("JPEGEnc test:: %d:error= %x\n", __LINE__, eError);
-	    goto EXIT;
-	}
+        eError = OMX_SetConfig (pOMXHandle, nCustomIndex, &b420pTo422i);
+        if ( eError != OMX_ErrorNone ) {
+            PRINTF("%d::APP_Error at function call: %x\n", __LINE__, eError);
+            goto EXIT;
+        }
+    }
 
-#ifndef NO_EXIF //Disabled EXIF temporarily. Encoding is failing if EXIF is included.
-	//[20100110 Ratnesh EXIF Inclusion
-	if (imageinfo->bAPP1) {
-		JPEG_APPTHUMB_MARKER sAPP1;
-		sAPP1.bMarkerEnabled = OMX_TRUE;
+    bPPLibEnable = OMX_TRUE;
+    eError = OMX_GetExtensionIndex(pOMXHandle, strPPLibEnable, (OMX_INDEXTYPE*)&nCustomIndex);
+    if ( eError != OMX_ErrorNone ) {
+        PRINTF("%d::APP_Error at function call: %x\n", __LINE__, eError);
+        goto EXIT;
+    }
 
-		/* set JFIF marker buffer */
-		sAPP1.nThumbnailWidth = imageinfo->nThumbnailWidth_app1;
-		sAPP1.nThumbnailHeight = imageinfo->nThumbnailHeight_app1;
+    eError = OMX_SetConfig (pOMXHandle, nCustomIndex, &bPPLibEnable);
+    if ( eError != OMX_ErrorNone ) {
+        PRINTF("%d::APP_Error at function call: %x\n", __LINE__, eError);
+        goto EXIT;
+    }
 
-		sAPP1.nMarkerSize = ExifSize + 4;
-		sAPP1.pMarkerBuffer = (OMX_U8*)pExifBuf;
+    eError = OMX_UseBuffer(pOMXHandle, &pInBuffHead,  InPortDef.nPortIndex,  (void *)&nCompId, InPortDef.nBufferSize, (OMX_U8*)mInputBuffer);
+    if ( eError != OMX_ErrorNone ) {
+        PRINTF ("JPEGEnc test:: %d:error= %x\n", __LINE__, eError);
+        goto EXIT;
+    }
 
-		LOGE("Rajshekar in StartFromLoadedState : sAPP1.pMarkerBuffer = 0x%x, nThumbnailWidth = %d, nThumbnailHeight = %d,\n",sAPP1.pMarkerBuffer,sAPP1.nThumbnailWidth,sAPP1.nThumbnailHeight);  
+    eError = OMX_UseBuffer(pOMXHandle, &pOutBuffHead,  OutPortDef.nPortIndex,  (void *)&nCompId, OutPortDef.nBufferSize, (OMX_U8*)mOutputBuffer);
+    if ( eError != OMX_ErrorNone ) {
+        PRINTF ("JPEGEnc test:: %d:error= %x\n", __LINE__, eError);
+        goto EXIT;
+    }
 
-		eError = OMX_GetExtensionIndex(pOMXHandle, "OMX.TI.JPEG.encoder.Config.APP1", (OMX_INDEXTYPE*)&nCustomIndex);
-		if ( eError != OMX_ErrorNone ) {
-			printf("%d::APP_Error at function call: %x\n", __LINE__, eError);
-			eError = OMX_ErrorUndefined;
-			goto EXIT;
-		}
+    //[20100110 Ratnesh EXIF Inclusion
+    if (imageinfo->bAPP1) {
+        JPEG_APPTHUMB_MARKER sAPP1;
+        sAPP1.bMarkerEnabled = OMX_TRUE;
 
-		eError = OMX_SetConfig(pOMXHandle, nCustomIndex, &sAPP1); 
-		if ( eError != OMX_ErrorNone ) {
-			printf("%d::APP_Error at function call: %x\n", __LINE__, eError);
-			eError = OMX_ErrorUndefined;
-			goto EXIT;
-		}
-	}
+        /* set JFIF marker buffer */
+        sAPP1.nThumbnailWidth = imageinfo->nThumbnailWidth_app1;
+        sAPP1.nThumbnailHeight = imageinfo->nThumbnailHeight_app1;
 
-	/* set comment marker */
-	if (imageinfo->nComment) {
-		eError = OMX_GetExtensionIndex(pOMXHandle, "OMX.TI.JPEG.encoder.Config.CommentFlag", (OMX_INDEXTYPE*)&nCustomIndex);
-		if ( eError != OMX_ErrorNone ) {
-			printf("%d::APP_Error at function call: %x\n", __LINE__, eError);
-			eError = OMX_ErrorUndefined;
-			goto EXIT;
-		}
-		
-		eError = OMX_SetConfig(pOMXHandle, nCustomIndex,  &(imageinfo->nComment));
-		if ( eError != OMX_ErrorNone ) {
-			printf("%d::APP_Error at function call: %x\n", __LINE__, eError);
-			eError = OMX_ErrorUndefined;
-			goto EXIT;
-		}
-		
-		eError = OMX_GetExtensionIndex(pOMXHandle, "OMX.TI.JPEG.encoder.Config.CommentString", (OMX_INDEXTYPE*)&nCustomIndex);
-		if ( eError != OMX_ErrorNone ) {
-			printf("%d::APP_Error at function call: %x\n", __LINE__, eError);
-			eError = OMX_ErrorUndefined;
-			goto EXIT;
-		}
-		
-		eError = OMX_SetConfig(pOMXHandle, nCustomIndex, imageinfo->pCommentString); 
-		if ( eError != OMX_ErrorNone ) {
-			printf("%d::APP_Error at function call: %x\n", __LINE__, eError);
-			eError = OMX_ErrorUndefined;
-			goto EXIT;
-		}
-	}
-	//]	
-#endif //if 0
+        sAPP1.nMarkerSize = ExifSize + 4;
+        sAPP1.pMarkerBuffer = (OMX_U8*)pExifBuf;
 
-	pInBuffHead->nFilledLen = pInBuffHead->nAllocLen;
+        eError = OMX_GetExtensionIndex(pOMXHandle, "OMX.TI.JPEG.encoder.Config.APP1", (OMX_INDEXTYPE*)&nCustomIndex);
+        if ( eError != OMX_ErrorNone ) {
+            printf("%d::APP_Error at function call: %x\n", __LINE__, eError);
+            eError = OMX_ErrorUndefined;
+            goto EXIT;
+        }
 
-	eError = OMX_SendCommand(pOMXHandle, OMX_CommandStateSet, OMX_StateIdle ,NULL);
-	if ( eError != OMX_ErrorNone ) {
-		PRINTF ("Error from SendCommand-Idle(Init) State function\n");
-		goto EXIT;
-	}
+        eError = OMX_SetConfig(pOMXHandle, nCustomIndex, &sAPP1); 
+        if ( eError != OMX_ErrorNone ) {
+            printf("%d::APP_Error at function call: %x\n", __LINE__, eError);
+            eError = OMX_ErrorUndefined;
+            goto EXIT;
+        }
+    }
 
-	QfactorType.nSize = sizeof(OMX_IMAGE_PARAM_QFACTORTYPE);
-	QfactorType.nQFactor = (OMX_U32) mQuality;
-	QfactorType.nVersion.s.nVersionMajor = 0x1;
-	QfactorType.nVersion.s.nVersionMinor = 0x0;
-	QfactorType.nVersion.s.nRevision = 0x0;
-	QfactorType.nVersion.s.nStep = 0x0;
-	QfactorType.nPortIndex = 0x0;
+    /* set comment marker */
+    if (imageinfo->nComment) {
+        eError = OMX_GetExtensionIndex(pOMXHandle, "OMX.TI.JPEG.encoder.Config.CommentFlag", (OMX_INDEXTYPE*)&nCustomIndex);
+        if ( eError != OMX_ErrorNone ) {
+            printf("%d::APP_Error at function call: %x\n", __LINE__, eError);
+            eError = OMX_ErrorUndefined;
+            goto EXIT;
+        }
 
-	eError = OMX_GetExtensionIndex(pOMXHandle, strQFactor, (OMX_INDEXTYPE*)&nCustomIndex);
-	if ( eError != OMX_ErrorNone ) {
-		PRINTF("\n%d::APP_Error at function call: %x\n", __LINE__, eError);
-		goto EXIT;
-	}
+        eError = OMX_SetConfig(pOMXHandle, nCustomIndex,  &(imageinfo->nComment));
+        if ( eError != OMX_ErrorNone ) {
+            printf("%d::APP_Error at function call: %x\n", __LINE__, eError);
+            eError = OMX_ErrorUndefined;
+            goto EXIT;
+        }
 
-	eError = OMX_SetConfig (pOMXHandle, nCustomIndex, &QfactorType);
-	if ( eError != OMX_ErrorNone ) {
-		PRINTF("\n%d::APP_Error at function call: %x\n", __LINE__, eError);
-		goto EXIT;
-	}
+        eError = OMX_GetExtensionIndex(pOMXHandle, "OMX.TI.JPEG.encoder.Config.CommentString", (OMX_INDEXTYPE*)&nCustomIndex);
+        if ( eError != OMX_ErrorNone ) {
+            printf("%d::APP_Error at function call: %x\n", __LINE__, eError);
+            eError = OMX_ErrorUndefined;
+            goto EXIT;
+        }
 
-	Run();
+        eError = OMX_SetConfig(pOMXHandle, nCustomIndex, imageinfo->pCommentString); 
+        if ( eError != OMX_ErrorNone ) {
+            printf("%d::APP_Error at function call: %x\n", __LINE__, eError);
+            eError = OMX_ErrorUndefined;
+            goto EXIT;
+        }
+    }
+    //]
+
+    pInBuffHead->nFilledLen = pInBuffHead->nAllocLen;
+
+    eError = OMX_SendCommand(pOMXHandle, OMX_CommandStateSet, OMX_StateIdle ,NULL);
+    if ( eError != OMX_ErrorNone ) {
+        PRINTF ("Error from SendCommand-Idle(Init) State function\n");
+        goto EXIT;
+    }
+
+    QfactorType.nSize = sizeof(OMX_IMAGE_PARAM_QFACTORTYPE);
+    QfactorType.nQFactor = (OMX_U32) mQuality;
+    QfactorType.nVersion.s.nVersionMajor = 0x1;
+    QfactorType.nVersion.s.nVersionMinor = 0x0;
+    QfactorType.nVersion.s.nRevision = 0x0;
+    QfactorType.nVersion.s.nStep = 0x0;
+    QfactorType.nPortIndex = 0x0;
+
+    eError = OMX_GetExtensionIndex(pOMXHandle, strQFactor, (OMX_INDEXTYPE*)&nCustomIndex);
+    if ( eError != OMX_ErrorNone ) {
+        PRINTF("\n%d::APP_Error at function call: %x\n", __LINE__, eError);
+        goto EXIT;
+    }
+
+    eError = OMX_SetConfig (pOMXHandle, nCustomIndex, &QfactorType);
+    if ( eError != OMX_ErrorNone ) {
+        PRINTF("\n%d::APP_Error at function call: %x\n", __LINE__, eError);
+        goto EXIT;
+    }
+
+    Run();
 
     if (imageinfo != NULL)
     {
-	 	LOGD("imageinfo memory deallocation before exit");
-		free(imageinfo);
-	 	imageinfo = NULL;
+        LOGD("imageinfo  memory deallocation before exit");
+        free(imageinfo);
+        imageinfo = NULL;
     }
 
     return true;
+
 EXIT:
 
     if (imageinfo != NULL)
     {
-        LOGD("imageinfo memory deallocation before exit");
+        LOGD("imageinfo  memory deallocation before exit");
         free(imageinfo);
         imageinfo = NULL;
     }
@@ -744,7 +731,7 @@ EXIT:
         PRINTF("\nError returned by TIOMX_Deinit()\n");
     }
 
-	return false;
+    return false;
 
 }
 
@@ -756,15 +743,15 @@ bool JpegEncoder::encodeImage(void* outputBuffer, int outBuffSize, void *inputBu
     PRINTF("\niState = %d", iState);
     PRINTF("\nwidth = %d", width);
     PRINTF("\nheight = %d", height);
-    PRINTF("\nquality = %d", quality);			
-    PRINTF("\ninBuffSize = %d", inBuffSize);				
+    PRINTF("\nquality = %d", quality);
+    PRINTF("\ninBuffSize = %d", inBuffSize);
     PRINTF("\noutBuffSize = %d", outBuffSize);	
-	PRINTF("\nisPixelFmt420p = %d", isPixelFmt420p);			
+    PRINTF("\nisPixelFmt420p = %d", isPixelFmt420p);
 
 #if JPEG_ENCODER_DUMP_INPUT_AND_OUTPUT
 
     char path[50];
-    snprintf(path, sizeof(path), "/temp/JEI_%d_%dx%d.raw", eInputCount, width, height);
+    snprintf(path, sizeof(path), "%s/JEI_%d_%dx%d.raw", DUMP_DIR, eInputCount, width, height);
 
     PRINTF("\nrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr");
     
@@ -806,7 +793,7 @@ bool JpegEncoder::encodeImage(void* outputBuffer, int outBuffSize, void *inputBu
         mWidth = width;
         mHeight = height;
         mQuality = quality;
-		mIsPixelFmt420p = isPixelFmt420p;
+        mIsPixelFmt420p = isPixelFmt420p;
         iLastState = STATE_LOADED;
         iState = STATE_LOADED;
     
@@ -856,7 +843,7 @@ bool JpegEncoder::encodeImage(void* outputBuffer,
 #if JPEG_ENCODER_DUMP_INPUT_AND_OUTPUT
 
     char path[50];
-    snprintf(path, sizeof(path), "/temp/JEI_%d_%dx%d.raw", eInputCount, width, height);
+    snprintf(path, sizeof(path), "%s/JEI_%d_%dx%d.raw", DUMP_DIR, eInputCount, width, height);
 
     PRINTF("\nrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr");
     
@@ -897,7 +884,7 @@ bool JpegEncoder::encodeImage(void* outputBuffer,
         mWidth = width;
         mHeight = height;
         mQuality = quality;
-		mIsPixelFmt420p = isPixelFmt420p;
+        mIsPixelFmt420p = isPixelFmt420p;
         iLastState = STATE_LOADED;
         iState = STATE_LOADED;
         //20100110 Ratnesh Includes EXIF Info also
@@ -993,21 +980,7 @@ while(1){
                         iState = STATE_ERROR;
                         break;
                     }
-                    /*
-                    eError = OMX_SendCommand(pOMXHandle, OMX_CommandPortDisable, 0x0, NULL);
-                    if ( eError != OMX_ErrorNone ) {
-                        PRINTF("\nError from SendCommand-PortDisable function. Input port.\n");
-                        iState = STATE_ERROR;
-                        break;
-                    }
 
-                    eError = OMX_SendCommand(pOMXHandle, OMX_CommandPortDisable, 0x1, NULL);
-                    if ( eError != OMX_ErrorNone ) {
-                        PRINTF("\nError from SendCommand-PortDisable function. Output port.\n");
-                        iState = STATE_ERROR;
-                        break;
-                    }
-                    */
                     /* Free buffers */
                     eError = OMX_FreeBuffer(pOMXHandle, InPortDef.nPortIndex, pInBuffHead);
                     if ( eError != OMX_ErrorNone ) {
@@ -1082,4 +1055,3 @@ while(1){
     }
 
 }
-
