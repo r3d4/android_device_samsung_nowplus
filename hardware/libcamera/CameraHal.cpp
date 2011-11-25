@@ -296,9 +296,7 @@ namespace android {
 		mBufferCount_422(0),
 		m_chk_dataline(0),
 		m_chk_dataline_end(false),
-#ifdef SAMSUNG_SECURITY
-		m_cur_security(0),
-#endif	
+
 		mPreviousGPSLatitude(0),
 		mPreviousGPSLongitude(0),
 		mPreviousGPSAltitude(0),
@@ -335,7 +333,7 @@ namespace android {
 		Neon_Rotate = (NEON_fpo) dlsym(pTIrtn, "Neon_RotateCYCY");
 
 		if (Neon_Rotate == NULL) {
-			LOGE("Couldnot find  Neon_RotateCYCY symbol, error=%s, addr= %p\n", error, Neon_Rotate);
+			LOGE("Couldnot find  Neon_RotateCYCY symbol, addr= %p\n", Neon_Rotate);
 			dlclose(pTIrtn);
 			pTIrtn = NULL;
 		} 
@@ -357,9 +355,6 @@ namespace android {
 
 		initDefaultParameters(cameraId);
 
-#ifdef CAMERA_ALGO
-		camAlgos = new CameraAlgo();
-#endif
 
 		ICaptureCreate();
 
@@ -400,11 +395,6 @@ namespace android {
 			mPreviewThread.clear();
 		}
 
-#ifdef CAMERA_ALGO
-		camAlgos->unInitFaceTracking();
-
-		delete camAlgos;
-#endif
 
 #ifdef EVE_CAM
 
@@ -725,12 +715,6 @@ namespace android {
 							PPM("PREVIEW STARTED AFTER CAPTURING\n");
 #endif
 
-#ifdef CAMERA_ALGO
-							if( initAlgos() < 0 )
-							{
-								LOGE("Error while initializing Camera Algorithms\n");
-							}
-#endif
 						}
 						else
 						{
@@ -980,16 +964,6 @@ namespace android {
 		LOG_FUNCTION_NAME_EXIT
 	} //end of previewThread
 
-#ifdef CAMERA_ALGO
-	status_t CameraHal::initAlgos()
-	{
-		int w,h;
-
-		mParameters.getPreviewSize(&w, &h);
-
-		return camAlgos->initFaceTracking(FACE_COUNT, w, h, AMFPAF_OPF_EQUAL, FRAME_SKIP, STABILITY, RATIO);
-	}
-#endif
 
 	int CameraHal::CameraCreate(int cameraId)
 	{
@@ -1009,7 +983,7 @@ namespace android {
 			else    //main 5MP camera
 			{
 				camera_device = open(VIDEO_DEVICE, O_RDWR);
-				mCamera_Mode = CAMERA_MODE_JPEG;
+				mCamera_Mode = CAMERA_MODE_YUV;//CAMERA_MODE_JPEG;
 				mCameraIndex = MAIN_CAMERA;
 			}
 
@@ -1527,18 +1501,6 @@ fail_reqbufs:
 		return err;
 	} //end of CameraStop()
 
-#ifdef SAMSUNG_SECURITY
-	int CameraHal::getSecurityCheck(void)
-	{
-		int androidSystemPropertiesSc = 10;
-		char CAM_DPM_PROPERTY[2] = {0,};
-		property_get("dpm.allowcamera", CAM_DPM_PROPERTY, "1");
-		androidSystemPropertiesSc = atoi(CAM_DPM_PROPERTY);	//Allow:1 | Not allow:0
-		//LOGE("func(%s):CAM_DPM_PROPERTY(%s):androidSystemPropertiesSc(%d)", __FUNCTION__,CAM_DPM_PROPERTY,androidSystemPropertiesSc);
-		m_security = androidSystemPropertiesSc;
-		return m_security;
-	}
-#endif
 
 	/*
 	//NCB-TI
@@ -1560,25 +1522,6 @@ fail_reqbufs:
 		bool queueBufferCheck = true;
 		int error = 0;
 
-#ifdef SAMSUNG_SECURITY
-		if(!mSamsungCamera)
-		{
-			if ((m_cur_security%60) == 59)
-			{
-				if(!getSecurityCheck())
-				{
-					CameraDestroy();
-					return;
-				}
-				m_cur_security = 0;
-			}
-			else
-			{
-				m_cur_security++;
-				//LOGE("============= %d===============\n",m_cur_security);
-			}	
-		}
-#endif	
 
 		/* De-queue the next avaliable buffer */
 		if (ioctl(camera_device, VIDIOC_DQBUF, &mCfilledbuffer) < 0)  
@@ -1651,26 +1594,6 @@ fail_reqbufs:
 				}
 			}
 		}
-
-#ifdef CAMERA_ALGO
-		int delay;
-		AMFPAF_FACERES *faces;
-
-		gettimeofday(&algo_before, 0);
-		faces = camAlgos->detectFaces( (uint8_t *) mCfilledbuffer.m.userptr);
-		gettimeofday(&algo_after, 0);
-		delay = (algo_after.tv_sec - algo_before.tv_sec)*1000;
-		delay += (algo_after.tv_usec - algo_before.tv_usec)/1000;
-		//LOGD("Facetracking Completed in %d [msec.]", delay);
-		if( faces->nFace != 0)
-		{
-			for( int i = 0; i < faces->nFace; i++)
-			{
-				drawRect( (uint8_t *) mCfilledbuffer.m.userptr, FOCUS_RECT_GREEN,  faces->rcFace[i].left, faces->rcFace[i].top, faces->rcFace[i].right, faces->rcFace[i].bottom, w, h);
-			}
-		}
-		lastOverlayIndex = mCfilledbuffer.index;
-#endif  //#ifdef CAMERA_ALGO
 
 #if	CHECK_FRAMERATE
 		debugShowFPS();
@@ -2058,12 +1981,6 @@ exit:
 	{
 		LOG_FUNCTION_NAME
 
-#ifdef SAMSUNG_SECURITY
-		if(!mSamsungCamera && !getSecurityCheck())
-		{
-			return UNKNOWN_ERROR;
-		}
-#endif
 
 		if(mOverlay == NULL && mCamMode != VT_MODE)
 		{

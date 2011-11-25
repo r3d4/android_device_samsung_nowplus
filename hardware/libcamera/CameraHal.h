@@ -83,20 +83,10 @@ extern "C" {
 #define RESIZER             1
 #define JPEG                1
 
-//#define OMAP_SCALE			1	// RealCAM Preview & Capture landscpae view option for GB
+#define OMAP_SCALE			0	// RealCAM Preview & Capture landscpae view option for GB
 
 #define CLEAR(x) memset (&(x), 0, sizeof (x))
 
-#ifdef CAMERA_ALGO
-#include "CameraAlgo.h"
-#include "arc_facetracking/include/arcsoft_face_tracking.h"
-#include "include/amcomdef.h"
-
-#define FACE_COUNT  10
-#define FRAME_SKIP  0
-#define STABILITY   0
-#define RATIO       10
-#endif
 
 #ifdef OMAP_ENHANCEMENT
 
@@ -129,7 +119,7 @@ extern "C" {
 #define JPEG_THUMBNAIL_HEIGHT		120
 
 #define PIXEL_FORMAT           		V4L2_PIX_FMT_UYVY
-#define PIXEL_FORMAT_JPEG      		V4L2_PIX_FMT_JPEG
+#define PIXEL_FORMAT_JPEG      		V4L2_PIX_FMT_UYVY   //V4L2_PIX_FMT_JPEG
 
 #define VIDEO_FRAME_COUNT_MAX		NUM_OVERLAY_BUFFERS_REQUESTED
 #define MAX_CAMERA_BUFFERS    		NUM_OVERLAY_BUFFERS_REQUESTED
@@ -142,8 +132,11 @@ extern "C" {
 
 #define OPEN_CLOSE_WORKAROUND	  	0
 
-#define PIX_YUV422I 				0
-#define PIX_YUV420P 				1
+#define PIX_YUV422I 				0  //(aka "YUY2") - YUV 4:2:2 (16bpp), interleaved format, Y-U-Y-V (Y/Cb/Y/Cr) order 
+#define PIX_YUV420P 				1  //(aka "I420") - YUV 4:2:0 (12bpp), basic planar format, Y-U-V (Y/Cb/Cr) order 
+
+#define UYV_BYTES_PER_PIXEL         2
+#define JPG_BYTES_PER_PIXEL         2
 
 #ifndef max
 #define max(a,b) ({typeof(a) _a = (a); typeof(b) _b = (b); _a > _b ? _a : _b; })
@@ -186,7 +179,6 @@ namespace android {
 #define Trd_PART       							4    
 
 #define NEON
-#define SAMSUNG_SECURITY
 
 #define ROTATEANGLE   							270
 #define VTROTATEANGLE 							90
@@ -335,6 +327,9 @@ namespace android {
 			void getExifInfoFromDriver(v4l2_exif* );
 			int convertToExifLMH(int, int);
 			//]
+            void setRotateYUV420(uint8_t* pInputBuf, uint8_t* pOutputBuf, int w, int h, int angle);
+            void setRotateYUV422(uint8_t* pInputBuf, uint8_t* pOutputBuf, int w, int h, int angle);
+
 			
 			int CameraCreate(int );
 			int CameraDestroy();
@@ -465,9 +460,6 @@ namespace android {
 #ifdef EVE_CAM		
 			void DrawOverlay(uint8_t *pBuffer, bool bCopy);
 			void PreviewConversion(uint8_t *pInBuffer, uint8_t *pOutBuffer);
-#endif
-#ifdef SAMSUNG_SECURITY
-			int getSecurityCheck(void);
 #endif
 			mutable Mutex mLock;
 			CameraParameters mParameters;
@@ -602,18 +594,7 @@ namespace android {
 #endif
 			int mPreviewWidth;
 			int mPreviewHeight;
-#ifdef SAMSUNG_SECURITY
-			int m_cur_security;
-			int m_security;
-#endif
 
-			/*--------------Eclair Camera HAL---------------------*/
-#ifdef CAMERA_ALGO
-			struct timeval algo_before, algo_after;
-			int lastOverlayIndex;
-			CameraAlgo *camAlgos;
-			status_t initAlgos();
-#endif
 
 #ifdef OMAP_ENHANCEMENT	  
 #ifdef HARDWARE_OMX

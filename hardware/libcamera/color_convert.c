@@ -84,14 +84,130 @@ int write_to_bmp(char *filename, uint8_t *pRgbData, int image_width, int image_h
     return 0;
 }
 
-int clip(int value)
-{
-    if(value>255) 
-        return 255;
-    else
-        return value;
+static uint8_t clip(int val) {
+	if(val < 0) return 0;
+	if(val > 255) return 255;
+	return val;
 }
 
+#if 0
+/*
+
+
+I'm doing RGB24 90 degrees rotation with algorithm:
+
+if (pInType->subtype==MEDIASUBTYPE_RGB24)
+        {
+            int m_iFrameHeight3 = m_iFrameHeight*3;
+                int j = 0;
+                for (int y=m_iFrameHeight; y>0; y--)
+                {
+                    int y3 = y*3;
+                    for (int x=0; x<m_iFrameWidth; x++)
+                    {
+                        memcpy(&pOutBuffer[x*m_iFrameHeight3+y3], &pInpBuffer[j], 3);
+                        j+=3;
+                    }
+                }
+        }
+
+
+If resolution is 320x240 it wokrs fine, but then i'm changing to 640x480 it crachs. Why?
+*/
+//640x480
+int rotate_rgb_left_90(uint8_t *ptrIn, uint8_t *ptrOut, int width, int height)
+{
+    long x;
+    long y;
+    long width = 100;
+    long height = 100;
+    char *ImageOriginal;
+    char *ImageRotated;
+    char temp;
+
+    for (y = 0; y < height; y++)
+    {
+        for (x = 0; x < width; x++)
+        {
+            temp = GetOriginal (x, y);
+            PutRotated (y, x, temp);
+        }
+    }
+
+    char GetOriginal (long x, long y)
+    {
+        return ImageOriginal [(y * height) + x];
+    }
+
+    void PutRotated (long x, long y, char value)
+    {
+        ImageRotated [(y * height) + x] = value;
+    }
+}
+#endif
+// U,Y,V,Y: [ u0 y0 v0 y1 ][ u2 y2 v2 y3 ][ u4 y4 v4 y5 ]
+int uyvy_to_rgb(uint8_t *ptrIn, uint8_t *ptrOut, int image_size )
+{
+    uint8_t *ptrEnd = ptrOut + image_size;
+    
+    while(ptrOut<ptrEnd)
+    {
+        int u0 = ptrIn[0];
+        int y0 = ptrIn[1];
+        int v0 = ptrIn[2];
+        int y1 = ptrIn[3];
+        ptrIn += 4;
+        int c = y0 - 16;
+        int d = u0 - 128;
+        int e = v0 - 128;
+        ptrOut[0] = clip(( 298 * c + 516 * d + 128) >> 8);              // blue
+        ptrOut[1] = clip(( 298 * c - 100 * d - 208 * e + 128) >> 8);    // green
+        ptrOut[2] = clip(( 298 * c + 409 * e + 128) >> 8);              // red
+        c = y1 - 16;
+        ptrOut[3] = clip(( 298 * c + 516 * d + 128) >> 8);              // blue
+        ptrOut[4] = clip(( 298 * c - 100 * d - 208 * e + 128) >> 8);    // green
+        ptrOut[5] = clip(( 298 * c + 409 * e + 128) >> 8);              // red
+        ptrOut += 6;
+    }
+    return 0;
+}
+// U,Y,V,Y: [ u0 y0 v0 y1 ][ u2 y2 v2 y3 ][ u4 y4 v4 y5 ]
+//         [ y0 u0 v0 ][ y1 u1 v1 ][ y2 u2 u2 ][ y3 u3 v3 ][ y4  u4 v4 ][  y5 u5 v5]
+int uyvy_to_yuv444(uint8_t *ptrIn, uint8_t *ptrOut, int image_size )
+{
+
+    return 0;
+}
+/*
+struct yuv_buffer {
+    int   y_width;      
+    int   y_height;     
+    int   y_stride;     
+    int   uv_width;     
+    int   uv_height;    
+    int   uv_stride;    
+    unsigned char *y;   
+    unsigned char *u;   
+    unsigned char *v;   
+} ;
+
+int init_yuv422(uint8_t *ptrIn, int width, int heigth)
+{
+    struct yuv_buffer yuv422;
+    struct yuv_buffer *pYuv=&yuv422;
+    
+    pYuv->y_width = width;
+    pYuv->y_height = heigth;
+    pYuv->y_stride = pYuv->y_width;
+    
+    pYuv->y_width = width;
+    pYuv->y_height = heigth;
+    pYuv->y_stride = pYuv->y_width;
+
+
+}
+*/
+//YUY2: [ y0 u0 y1 v0 ][ y2 u2 y3 v2] {y4 u4 y5 v4] 
 int yuv2_to_rgb(uint8_t *ptrIn, uint8_t *ptrOut, int image_size )
 {
     uint8_t *ptrEnd = ptrOut + image_size;

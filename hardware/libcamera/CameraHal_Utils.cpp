@@ -25,12 +25,14 @@
  */
 
 #define LOG_TAG "CameraHalUtils"
+#define LOG_NDEBUG 0
+
+#define DUMP_BMP  
 
 #include "CameraHal.h"
+#include "ColorConvert.h"
 
- extern "C" {
-    #include "color_convert.h"
- }
+#define DUMP_PATH "/dump/"
 
 //[ 2010 05 02 03
 #include <cutils/properties.h> // for property_get for the voice recognition mode switch
@@ -366,11 +368,7 @@ s_fmt_fail:
 		sp<MemoryBase> 		mFinalPictureBuffer;
 		sp<MemoryHeapBase>  mJPEGPictureHeap;
 		sp<MemoryBase>		mJPEGPictureMemBase;
-#if 1//OMAP_SCALE
-		sp<MemoryHeapBase> 	TempHeapBase;
-		sp<MemoryBase>	 	TempBase;
-		sp<IMemoryHeap> 	TempHeap;
-#endif
+
 
 		ssize_t newoffset;
 		size_t newsize;
@@ -389,6 +387,9 @@ s_fmt_fail:
 		int orientation = getOrientation();
 
 		LOG_FUNCTION_NAME
+        
+        // clear EXIF information
+        memset(pExifBuf, 0, sizeof(pExifBuf));
 
 		if (CameraSetFrameRate())
 		{
@@ -413,66 +414,47 @@ s_fmt_fail:
 		}
 #endif
 
+        /* set size & format of the video image */
+		format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		format.fmt.pix.width = image_width;
+		format.fmt.pix.height = image_height;
+        
 		if(mCamera_Mode == CAMERA_MODE_JPEG)
 		{
-			int jpeg_width = GetJPEG_Capture_Width();
-			int jpeg_height = GetJPEG_Capture_Height();
-			capture_len = jpeg_width * jpeg_height * 2;
+            format.fmt.pix.pixelformat = PIXEL_FORMAT_JPEG;
+			capture_len =  GetJPEG_Capture_Width() * GetJPEG_Capture_Height() * JPG_BYTES_PER_PIXEL;
 		}
 		else
 		{
-			capture_len = image_width * image_height * 2;
+            format.fmt.pix.pixelformat = PIXEL_FORMAT;
+			capture_len = image_width * image_height * UYV_BYTES_PER_PIXEL;   
 		}
 
-		if (capture_len & 0xfff)
-		{
+         // round up to 4096 bytes
+		if (capture_len & 0xfff)   
 			capture_len = (capture_len & 0xfffff000) + 0x1000;
-		}
 
 		HAL_PRINT("capture: %s mode, pictureFrameSize = 0x%x = %d\n", 
             (mCamera_Mode == CAMERA_MODE_JPEG)?"jpeg":"yuv", capture_len, capture_len);
 
+            
 		mPictureHeap = new MemoryHeapBase(capture_len);
-
 		base = (unsigned long)mPictureHeap->getBase();
 		base = (base + 0xfff) & 0xfffff000;
 		offset = base - (unsigned long)mPictureHeap->getBase();
 
-		/* set size & format of the video image */
-		format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-		format.fmt.pix.width = image_width;
-		format.fmt.pix.height = image_height;
-		
-		if(mCamera_Mode == CAMERA_MODE_JPEG)
-			format.fmt.pix.pixelformat = PIXEL_FORMAT_JPEG;
-		else
-			format.fmt.pix.pixelformat = PIXEL_FORMAT;
 
+        // set capture format
 		if (ioctl(camera_device, VIDIOC_S_FMT, &format) < 0)
 		{
 			LOGE ("Failed to set VIDIOC_S_FMT.\n");
 			return -1;
 		}
-		
-#if OMAP_SCALE
-        if(mCameraIndex == VGA_CAMERA && mCamMode != VT_MODE) {
-            if(orientation == 0 || orientation == 180) {
-                struct v4l2_control vc;            
-                CLEAR(vc);
-                vc.id = V4L2_CID_FLIP;                
-                vc.value = CAMERA_FLIP_MIRROR;
-                if (ioctl (camera_device, VIDIOC_S_CTRL, &vc) < 0) {
-                    LOGE("V4L2_CID_FLIP fail!\n");
-                    return UNKNOWN_ERROR;  
-                }
-            }
-        }
-#endif  
 
 		/* Shutter CallBack */
 		if(mMsgEnabled & CAMERA_MSG_SHUTTER)
 		{
-			mNotifyCb(CAMERA_MSG_SHUTTER,0,0,mCallbackCookie);
+			mNotifyCb(CAMERA_MSG_SHUTTER, 0, 0, mCallbackCookie);
 		} 
 
 		/* Check if the camera driver can accept 1 buffer */
@@ -515,13 +497,14 @@ s_fmt_fail:
 		/* De-queue the next avaliable buffer */
 		cfilledbuffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 		cfilledbuffer.memory = creqbuf.memory;
-
+        
+        //try to get buffer from camearo for 10 times
 		while (ioctl(camera_device, VIDIOC_DQBUF, &cfilledbuffer) < 0) 
 		{
 			LOGE("VIDIOC_DQBUF Failed cnt = %d\n", err_cnt);
 			if(err_cnt++ > 10)
 			{
-				mNotifyCb(CAMERA_MSG_ERROR,CAMERA_DEVICE_ERROR_FOR_RESTART,0,mCallbackCookie);
+				mNotifyCb(CAMERA_MSG_ERROR, CAMERA_DEVICE_ERROR_FOR_RESTART, 0, mCallbackCookie);
 
 				mPictureBuffer.clear();
 				mPictureHeap.clear();
@@ -539,22 +522,8 @@ s_fmt_fail:
 			LOGE("VIDIOC_STREAMON Failed\n");
 			return -1;
 		}
-
-#if OMAP_SCALE
-        if(mCameraIndex == VGA_CAMERA && mCamMode != VT_MODE) {
-            if(orientation == 0 || orientation == 180) {
-                struct v4l2_control vc;            
-                CLEAR(vc);
-                vc.id = V4L2_CID_FLIP;                
-                vc.value = CAMERA_FLIP_NONE;
-                if (ioctl (camera_device, VIDIOC_S_CTRL, &vc) < 0) {
-                    LOGE("V4L2_CID_FLIP fail!\n");
-                    return UNKNOWN_ERROR;  
-                }
-            }
-        }
-#endif  
-
+         
+        // camera returns processed jpeg image
 		if(mCamera_Mode == CAMERA_MODE_JPEG)
 		{
 			int JPEG_Image_Size = GetJpegImageSize();
@@ -585,15 +554,17 @@ s_fmt_fail:
 #if TIMECHECK
 				PPM("YUV COLOR CONVERSION STARTED\n");
 #endif
-				Neon_Convert_yuv422_to_NV21((uint8_t *)pYUVDataBuf, (uint8_t *)newheap->base(), mPreviewWidth, mPreviewHeight);
+				Neon_Convert_yuv422_to_NV21((uint8_t *)pYUVDataBuf, 
+                    (uint8_t *)newheap->base(), mPreviewWidth, mPreviewHeight);
 #if TIMECHECK
 				PPM("YUV COLOR CONVERSION ENDED\n");
 #endif
 			}
 			//create final JPEG with EXIF into that
 			int OutJpegSize = 0;
-			err = CreateJpegWithExif(pInJPEGDataBUuf,JPEG_Image_Size,pExifBuf,EXIF_Data_Size,pOutFinalJpegDataBuf,OutJpegSize);
-			if(err==false) return -1;
+			if(!CreateJpegWithExif( pInJPEGDataBUuf, JPEG_Image_Size, pExifBuf, 
+                    EXIF_Data_Size, pOutFinalJpegDataBuf, OutJpegSize))
+                return -1;
 			
 			if(yuvOffset)
 			{
@@ -622,8 +593,11 @@ s_fmt_fail:
 				LOGE ("!!!!!!!!!FATAL Error: Could not open the camera device: %s!!!!!!!!!\n", strerror(errno) );
 			}
 #endif
-		}
-
+		}   //CAMERA_MODE_JPEG
+        
+        // camera returns 16 bit uyv image
+        // -> needs to process (rotate/flip) 
+        // -> and compess to jpeg (with dsp)
 		if(mCamera_Mode == CAMERA_MODE_YUV)
 		{
 #ifdef HARDWARE_OMX
@@ -635,80 +609,35 @@ s_fmt_fail:
 			sp<IMemoryHeap> heap = mPictureBuffer->getMemory(&newoffset, &newsize);
 			uint8_t* pYUVDataBuf = (uint8_t *)heap->base() + newoffset ;
 			LOGD("PictureThread: generated a picture, yuv_buffer=%p yuv_len=%d\n",pYUVDataBuf,capture_len);
-            dum_to_file("neon_in1.yuv", (uint8_t*)pYUVDataBuf, mPreviewWidth*mPreviewHeight*2);	
             
-#if 1       //dump rgb 
-            //640x480 yuv2: 2 pixel = 4byte, rgb24: 2pixel=6byte
-            #define RGB_BIT_PER_PIXEL     24
-            #define YUV2_BIT_PER_PIXEL    16
-
-            size_t rgb24size= image_width*image_height*(RGB_BIT_PER_PIXEL>>3);
-			TempHeapBase = new MemoryHeapBase(rgb24size);
-			TempBase = new MemoryBase(TempHeapBase, 0, rgb24size);
-			TempHeap = TempBase->getMemory(&newoffset, &newsize);            
-            uint8_t* pRgbData = (uint8_t*)TempHeap->base();
-                       
-            yuv2_to_rgb((uint8_t*)pYUVDataBuf, pRgbData, rgb24size );
-            write_to_bmp("input.bmp", pRgbData, image_width, image_height, rgb24size, RGB_BIT_PER_PIXEL);	
-            //dum_to_file("in.rgb", pRgbData, rgb24size);	
-            
-            TempHeapBase.clear();
-			TempBase.clear();
-			TempHeap.clear();
-#endif   
-
-#if OMAP_SCALE
-			TempHeapBase = new MemoryHeapBase(mFrameSizeConvert);
-			TempBase = new MemoryBase(TempHeapBase,0,mFrameSizeConvert);
-			TempHeap = TempBase->getMemory(&newoffset, &newsize);
-			if(scale_process((void*)pYUVDataBuf, mPreviewWidth, mPreviewHeight,(void*)TempHeap->base(), mPreviewHeight, mPreviewWidth, 0, PIX_YUV422I, 1))
-			{
-				LOGE("scale_process() failed\n");
-			}
-            dum_to_file("neon_in2.yuv", (uint8_t*)TempHeap->base(), mPreviewWidth*mPreviewHeight*2);
-#endif
-
+  
 #if TIMECHECK
 			PPM("YUV COLOR ROTATION STARTED\n");
-#endif                   
- 
-
-			/*
-			   	for VGA capture case
-				pYUVDataBuf : Input buffer from Camera Driver YUV422.
-				mVGANewheap->base() : 90 or 270 degree rotated YUV422 format.
-			 */
-			{
-				int error = 0;
-#if OMAP_SCALE
-				neon_args->pIn 		= (uint8_t*)TempHeap->base();
-#else
-				neon_args->pIn 		= (uint8_t*)pYUVDataBuf;
-#endif
-				neon_args->pOut 	= (uint8_t*)mVGANewheap->base();
-				neon_args->height 	= mPreviewWidth; 
-				neon_args->width 	= mPreviewHeight;
-#if OMAP_SCALE
-				neon_args->rotate 	= NEON_ROT90;
-#else
-				neon_args->rotate 	= NEON_ROT270;
-#endif
-				if (Neon_Rotate != NULL)
-					error = (*Neon_Rotate)(neon_args);
-				else
-					LOGE("Rotate Fucntion pointer Null");
-
-				if (error < 0) {
-					LOGE("Error in Rotation 90");
-
-				}							    					
-			}
-            dum_to_file("neon_out.yuv", (uint8_t*)mVGANewheap->base(), mPreviewWidth*mPreviewHeight*2);
-#if OMAP_SCALE
-			TempHeapBase.clear();
-			TempBase.clear();
-			TempHeap.clear();
-#endif
+#endif  
+//#define CONVERT        
+#ifdef CONVERT     
+             //dump rgb 
+            CColorConvert* pConvert = new CColorConvert(pYUVDataBuf, mPreviewWidth, mPreviewHeight, UYV2);
+            
+            pConvert->writeFile(DUMP_PATH "before_rotate.bmp", BMP);      
+            pConvert->writeFile(DUMP_PATH "before_rotate.uyv", SOURCE);  
+           
+            if(mCameraIndex == VGA_CAMERA )
+            {
+                pConvert->rotateImage(ROTATE_270);
+                //pConvert->flipImage(FLIP_HORIZONTAL);
+            }
+            else
+            {
+                pConvert->flipImage(FLIP_VERTICAL);
+            }
+            
+            // write rotatet image back to input buffer
+            pConvert->writeFile(DUMP_PATH "after_rotate.bmp", BMP);   
+            pConvert->makeUYV2(NULL, INPLACE);  //INPLACE no new buffer, write to input buffer   
+            image_width = pConvert->getWidth();
+            image_height = pConvert->geHeight();
+#endif            
 #if TIMECHECK
 			PPM("YUV COLOR ROTATION Done\n");
 #endif
@@ -717,50 +646,38 @@ s_fmt_fail:
 			if (mMsgEnabled & CAMERA_MSG_COMPRESSED_IMAGE)
 			{
 #ifdef HARDWARE_OMX  
-				int jpegSize = image_width * image_height*2;
-				capture_len = (image_width*image_height*2) ;
+				int jpegSize = image_width * image_height*UYV_BYTES_PER_PIXEL;
+				capture_len = (image_width*image_height*UYV_BYTES_PER_PIXEL) ;
+                
 				CreateExif(NULL, 0, pExifBuf, EXIF_Data_Size, 0);
 				HAL_PRINT("VGA EXIF size : %d\n", EXIF_Data_Size);
+                
 				mJPEGPictureHeap = new MemoryHeapBase(jpegSize + 256);
 				outBuffer = (void *)((unsigned long)(mJPEGPictureHeap->getBase()) + 128);
 #if TIMECHECK
 				PPM("BEFORE JPEG Encode Image\n");
 #endif
+
+                
 				HAL_PRINT("VGA capture : outbuffer = 0x%x, jpegSize = %d, yuv_buffer = 0x%x, yuv_len = %d, image_width = %d, image_height = %d, quality = %d, mippMode =%d\n", 
 							outBuffer, jpegSize, yuv_buffer, capture_len, image_width, image_height, mYcbcrQuality, mippMode); 
 
 				if(isStart_JPEG)
 				{
-					int jpegFormat = PIX_YUV422I;
-#ifdef OMAP_ENHANCEMENT
-#if OMAP_SCALE
 
-					err = jpegEncoder->encodeImage(outBuffer, 
-											jpegSize, 
-											(uint8_t*)mVGANewheap->base(), 
-											capture_len, 
-											pExifBuf,
-											EXIF_Data_Size,
-											image_width,	//
-											image_height,	//
-											mThumbnailWidth,
-											mThumbnailHeight,
-											mYcbcrQuality,
-											jpegFormat);
-#else
-					err = jpegEncoder->encodeImage(outBuffer, 
-											jpegSize, 
-											(uint8_t*)mVGANewheap->base(), 
-											capture_len, 
-											pExifBuf,
-											EXIF_Data_Size,
-											image_height,	//
-											image_width,	//
-											mThumbnailWidth,
-											mThumbnailHeight,
-											mYcbcrQuality,
-											jpegFormat);
-#endif        	
+					err = jpegEncoder->encodeImage(outBuffer,   // void* outputBuffer, 
+                            jpegSize,                           // int outBuffSize, 
+                            (uint8_t*)pYUVDataBuf,              // void *inputBuffer, 
+                            capture_len,                        // int inBuffSize, 
+                            pExifBuf,                           // unsigned char* pExifBuf,
+                            EXIF_Data_Size,                     // int ExifSize,
+                            image_width,	                    // int width, 
+                            image_height,	                    // int height, 
+                            mThumbnailWidth,                    // int ThumbWidth, 
+                            mThumbnailHeight,                   // int ThumbHeight, 
+                            mYcbcrQuality,                      // int quality,
+                            PIX_YUV422I);                        // int isPixelFmt420p)
+     	
 					LOGD("JPEG ENCODE END\n");
 
 					if(err != true) {
@@ -769,17 +686,18 @@ s_fmt_fail:
 					} else {
 						LOGD("Jpeg encode success!!\n");
 					}
-#endif
+
 				}
+
 #if TIMECHECK
 				PPM("AFTER JPEG Encode Image\n");
 #endif
-#ifdef OMAP_ENHANCEMENT
+
 				mJPEGPictureMemBase = new MemoryBase(mJPEGPictureHeap, 128, jpegEncoder->jpegSize);
-#endif
+
 				if (mMsgEnabled & CAMERA_MSG_COMPRESSED_IMAGE)
 				{
-					mDataCb(CAMERA_MSG_COMPRESSED_IMAGE,mJPEGPictureMemBase,mCallbackCookie);
+					mDataCb(CAMERA_MSG_COMPRESSED_IMAGE, mJPEGPictureMemBase, mCallbackCookie);
 				}
 
 				mJPEGPictureMemBase.clear();
@@ -798,12 +716,17 @@ s_fmt_fail:
 			{
 				Neon_Convert_yuv422_to_YUV420P((uint8_t *)mVGANewheap->base(), (uint8_t *)yuv_buffer, mPreviewHeight, mPreviewWidth);         	
 				mDataCb(CAMERA_MSG_RAW_IMAGE, mPictureBuffer, mCallbackCookie);
-			}        
-		}
-		//END of CAMERA_MODE_YUV
+			} 
+#ifdef CONVERT 
+            delete pConvert;  
+#endif            
+
+            
+		}//END of CAMERA_MODE_YUV
 
 		mPictureBuffer.clear();
 		mPictureHeap.clear();
+        
 		if(mCamera_Mode == CAMERA_MODE_JPEG)
 		{
 			mFinalPictureBuffer.clear();
@@ -811,14 +734,10 @@ s_fmt_fail:
 			mYUVPictureBuffer.clear();
 			mYUVPictureHeap.clear();
 		}
-
-		if(mCamera_Mode == CAMERA_MODE_YUV)
-		{
-			if(mCameraIndex == VGA_CAMERA)
-			{
-				mVGAYUVPictureBuffer.clear();
-				mVGAYUVPictureHeap.clear();
-			}
+        else
+        {
+            mVGAYUVPictureBuffer.clear();
+            mVGAYUVPictureHeap.clear();
 		}
 
 		delete []pExifBuf;
@@ -853,7 +772,7 @@ s_fmt_fail:
 		memset(&ExifInfo, NULL, sizeof(ExifInfoStructure));
 
 		strcpy( (char *)&ExifInfo.maker, "SAMSUNG");
-		strcpy( (char *)&ExifInfo.model, "GT-I9003");
+		strcpy( (char *)&ExifInfo.model, "GT-I8320");
 
 		mParameters.getPreviewSize(&w, &h);
 
@@ -1639,4 +1558,5 @@ s_fmt_fail:
 		if(value < 0) return LOW;
 		else return HIGH;
 	}
-};
+    
+};  //namespace
