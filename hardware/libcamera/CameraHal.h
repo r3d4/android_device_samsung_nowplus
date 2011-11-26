@@ -137,12 +137,15 @@ extern "C" {
 
 #define UYV_BYTES_PER_PIXEL         2
 #define JPG_BYTES_PER_PIXEL         2
+#define PIX_YUV422I_BYTES_PER_PIXEL 2
+#define PIX_YUV420P_BYTES_PER_PIXEL 3/2
 
 #ifndef max
 #define max(a,b) ({typeof(a) _a = (a); typeof(b) _b = (b); _a > _b ? _a : _b; })
 #define min(a,b) ({typeof(a) _a = (a); typeof(b) _b = (b); _a < _b ? _a : _b; })
 #endif
 
+#if TIMECHECK
 #define PPM(str){ \
 	gettimeofday(&ppm, NULL); \
 	ppm.tv_sec = ppm.tv_sec - ppm_start.tv_sec; \
@@ -150,6 +153,9 @@ extern "C" {
 	ppm.tv_sec = ppm.tv_sec + ppm.tv_usec - ppm_start.tv_usec; \
 	LOGD("PPM: %s :%ld.%ld ms",str, ppm.tv_sec/1000, ppm.tv_sec%1000 ); \
 }
+#else
+#define PPM(str)
+#endif
 
 #define HALO_ISO
 
@@ -340,7 +346,6 @@ namespace android {
 			int CameraStop();
 			int SaveFile(char *filename, char *ext, void *buffer, int jpeg_size);
 
-			int isStart_JPEG;
 			int isStart_VPP;
 			int isStart_Scale;
 
@@ -473,7 +478,7 @@ namespace android {
 			sp<MemoryHeapBase> mFinalPictureHeap;
 			sp<MemoryHeapBase> mYUVPictureHeap;
 			sp<MemoryBase> mYUVPictureBuffer;
-			sp<IMemoryHeap> newheap;
+            sp<IMemoryHeap> mYUVNewheap;
 			//]
 			sp<MemoryHeapBase> mVGAYUVPictureHeap;
 			sp<MemoryBase> mVGAYUVPictureBuffer;
@@ -677,7 +682,7 @@ namespace android {
 
 			mutable Mutex takephoto_lock;
 			uint8_t *yuv_buffer, *jpeg_buffer, *vpp_buffer, *ancillary_buffer;
-			int capture_len, yuv_len, jpeg_len, ancillary_len;
+			int yuv_len, jpeg_len, ancillary_len;
 #ifdef FOCUS_RECT
 			/* Focus rectangle  flags */
 			int focus_rect_set;

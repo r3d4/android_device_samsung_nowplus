@@ -307,7 +307,6 @@ namespace android {
 #endif
 		const char* error;
 
-		isStart_JPEG = false;
 		isStart_Scale = false;
 		mFalsePreview = false;  //Android HAL
 		mRecorded = false;  	//Android HAL
@@ -1852,7 +1851,6 @@ fail_reqbufs:
 
 		LOG_FUNCTION_NAME
 
-		isStart_JPEG = false;
 		isStart_VPP = false;
 		isStart_Scale = false;
 
@@ -1865,12 +1863,9 @@ fail_reqbufs:
 		mippMode=0;
 
 #if JPEG
+        
 		jpegEncoder = new JpegEncoder;
 
-		if( NULL != jpegEncoder )
-		{
-			isStart_JPEG = true;
-		}
 #ifdef jpeg_decoder
 		jpegDecoder = new JpegDecoder;
 #endif //of jpeg_decoder
@@ -1908,11 +1903,9 @@ exit:
 #ifdef OMAP_ENHANCEMENT	
 #ifdef HARDWARE_OMX
 #if JPEG
-		if( isStart_JPEG )
+		if( jpegEncoder )
 		{
 			delete jpegEncoder;
-			isStart_JPEG = NULL;
-			isStart_JPEG = false;
 			jpegEncoder = NULL;
 		}
 #ifdef jpeg_decoder

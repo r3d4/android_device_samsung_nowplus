@@ -357,11 +357,12 @@ s_fmt_fail:
 	int CameraHal::CapturePicture()
 	{
 		int image_width, image_height, preview_width, preview_height;
+        int capture_len;
 		unsigned long base, offset;
 		
 		struct v4l2_buffer buffer; // for VIDIOC_QUERYBUF and VIDIOC_QBUF
 		struct v4l2_format format;
-		struct v4l2_buffer cfilledbuffer; // for VIDIOC_DQBUF
+		//struct v4l2_buffer cfilledbuffer; // for VIDIOC_DQBUF
 		struct v4l2_requestbuffers creqbuf; // for VIDIOC_REQBUFS and VIDIOC_STREAMON and VIDIOC_STREAMOFF
 
 		sp<MemoryBase> 		mPictureBuffer;
@@ -379,9 +380,10 @@ s_fmt_fail:
 		int err, i;
 		int err_cnt = 0;
 
-		int EXIF_Data_Size = 0;
-		int ThumbNail_Data_Size = 0;
-		unsigned char* pExifBuf = new unsigned char[65536];	//64*1024
+
+		int exifDataSize = 0;
+		int thumbnaiDataSize = 0;
+		unsigned char* pExifBuf = new unsigned char[64*1024];
 
 		int twoSecondReviewMode = getTwoSecondReviewMode();
 		int orientation = getOrientation();
@@ -489,7 +491,6 @@ s_fmt_fail:
 		}
 
 		/* turn on streaming */
-		creqbuf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 		if (ioctl(camera_device, VIDIOC_STREAMON, &creqbuf.type) < 0)
 		{
 			LOGE("VIDIOC_STREAMON Failed\n");
@@ -498,12 +499,9 @@ s_fmt_fail:
 
 		HAL_PRINT("De-queue the next avaliable buffer\n");
 
-		/* De-queue the next avaliable buffer */
-		cfilledbuffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-		cfilledbuffer.memory = creqbuf.memory;
-        
+		/* De-queue the next avaliable buffer */       
         //try to get buffer from camearo for 10 times
-		while (ioctl(camera_device, VIDIOC_DQBUF, &cfilledbuffer) < 0) 
+		while (ioctl(camera_device, VIDIOC_DQBUF, &buffer) < 0) 
 		{
 			LOGE("VIDIOC_DQBUF Failed cnt = %d\n", err_cnt);
 			if(err_cnt++ > 10)
@@ -520,7 +518,6 @@ s_fmt_fail:
 		PPM("AFTER CAPTURE YUV IMAGE\n");
 #endif
 		/* turn off streaming */
-		creqbuf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 		if (ioctl(camera_device, VIDIOC_STREAMOFF, &creqbuf.type) < 0) 
 		{
 			LOGE("VIDIOC_STREAMON Failed\n");
@@ -537,17 +534,17 @@ s_fmt_fail:
 			int JPEG_Image_Size = GetJpegImageSize();
 			int thumbNailOffset = GetThumbNailOffset();
 			int yuvOffset = GetYUVOffset();
-			ThumbNail_Data_Size = GetThumbNailDataSize();
+			thumbnaiDataSize = GetThumbNailDataSize();
 			sp<IMemoryHeap> heap = mPictureBuffer->getMemory(&newoffset, &newsize);
 			uint8_t* pInJPEGDataBUuf = (uint8_t *)heap->base() + newoffset ;
 			uint8_t* pInThumbNailDataBuf = (uint8_t *)heap->base() + thumbNailOffset;
 			uint8_t* pYUVDataBuf = (uint8_t *)heap->base() + yuvOffset;
 
-			CreateExif(pInThumbNailDataBuf,ThumbNail_Data_Size,pExifBuf,EXIF_Data_Size,1);
+			CreateExif(pInThumbNailDataBuf, thumbnaiDataSize, pExifBuf, exifDataSize, 1);
 
 			//create a new binder object 
-			mFinalPictureHeap = new MemoryHeapBase(EXIF_Data_Size+JPEG_Image_Size);
-			mFinalPictureBuffer = new MemoryBase(mFinalPictureHeap,0,EXIF_Data_Size+JPEG_Image_Size);
+			mFinalPictureHeap = new MemoryHeapBase(exifDataSize+JPEG_Image_Size);
+			mFinalPictureBuffer = new MemoryBase(mFinalPictureHeap,0,exifDataSize+JPEG_Image_Size);
 			heap = mFinalPictureBuffer->getMemory(&newoffset, &newsize);
 			uint8_t* pOutFinalJpegDataBuf = (uint8_t *)heap->base();
 
@@ -558,49 +555,39 @@ s_fmt_fail:
 
 				mYUVPictureHeap = new MemoryHeapBase(mFrameSizeConvert);
 				mYUVPictureBuffer = new MemoryBase(mYUVPictureHeap,0,mFrameSizeConvert);
-				sp<IMemoryHeap> newheap = mYUVPictureBuffer->getMemory(&newoffset, &newsize);
-#if TIMECHECK
+				mYUVNewheap = mYUVPictureBuffer->getMemory(&newoffset, &newsize);
+
 				PPM("YUV COLOR CONVERSION STARTED\n");
-#endif
+#ifdef NEON
+
 				Neon_Convert_yuv422_to_NV21((uint8_t *)pYUVDataBuf, 
-                    (uint8_t *)newheap->base(), mPreviewWidth, mPreviewHeight);
-#if TIMECHECK
+                    (uint8_t *)mYUVNewheap->base(), mPreviewWidth, mPreviewHeight);
+
 				PPM("YUV COLOR CONVERSION ENDED\n");
-#endif
-			}
-			//create final JPEG with EXIF into that
-			int OutJpegSize = 0;
-			if(!CreateJpegWithExif( pInJPEGDataBUuf, JPEG_Image_Size, pExifBuf, 
-                    EXIF_Data_Size, pOutFinalJpegDataBuf, OutJpegSize))
-                return -1;
-			
-			if(yuvOffset)
-			{
-#ifdef HARDWARE_OMX
-				if(twoSecondReviewMode == 1)
-				{
-					DrawOverlay(pYUVDataBuf, true);
-				}
-#endif //HARDWARE_OMX
+
 				if(mMsgEnabled & CAMERA_MSG_RAW_IMAGE)
 				{
 					mDataCb(CAMERA_MSG_RAW_IMAGE, mYUVPictureBuffer, mCallbackCookie);
 				}	
-			}
+#else
+                if(mMsgEnabled & CAMERA_MSG_RAW_IMAGE)
+                    mDataCb(CAMERA_MSG_RAW_IMAGE, pYUVDataBuf, mCallbackCookie);
 
-			if (mMsgEnabled & CAMERA_MSG_COMPRESSED_IMAGE)
-			{
-				mDataCb(CAMERA_MSG_COMPRESSED_IMAGE, mFinalPictureBuffer, mCallbackCookie);
-			}
-
-#if OPEN_CLOSE_WORKAROUND
-			close(camera_device);
-			camera_device = open(VIDEO_DEVICE, O_RDWR);
-			if (camera_device < 0) 
-			{
-				LOGE ("!!!!!!!!!FATAL Error: Could not open the camera device: %s!!!!!!!!!\n", strerror(errno) );
-			}
 #endif
+			}
+			//create final JPEG with EXIF into that
+			int OutJpegSize = 0;
+			if(!CreateJpegWithExif( pInJPEGDataBUuf, JPEG_Image_Size, pExifBuf, exifDataSize, pOutFinalJpegDataBuf, OutJpegSize))
+            {
+                LOGE("createJpegWithExif fail!!\n");
+                return -1;
+            }
+
+            if (mMsgEnabled & CAMERA_MSG_COMPRESSED_IMAGE)
+            {
+                mDataCb(CAMERA_MSG_COMPRESSED_IMAGE, mFinalPictureBuffer, mCallbackCookie);
+             }
+
 		}   //CAMERA_MODE_JPEG
         
         // camera returns 16 bit uyv image
@@ -609,98 +596,103 @@ s_fmt_fail:
 		if(mCamera_Mode == CAMERA_MODE_YUV)
 		{
 #ifdef HARDWARE_OMX
+            // create new buffer for image processing
 			int mFrameSizeConvert = (image_width*image_height*2) ;
-			mVGAYUVPictureHeap = new MemoryHeapBase(mFrameSizeConvert);
-			mVGAYUVPictureBuffer = new MemoryBase(mVGAYUVPictureHeap,0,mFrameSizeConvert);
-			mVGANewheap = mVGAYUVPictureBuffer->getMemory(&newoffset, &newsize);
-
-			sp<IMemoryHeap> heap = mPictureBuffer->getMemory(&newoffset, &newsize);
-			uint8_t* pYUVDataBuf = (uint8_t *)heap->base() + newoffset ;
-			LOGD("PictureThread: generated a picture, yuv_buffer=%p yuv_len=%d\n",pYUVDataBuf,capture_len);
+			mYUVPictureHeap = new MemoryHeapBase(mFrameSizeConvert);
+			mYUVPictureBuffer = new MemoryBase(mYUVPictureHeap,0,mFrameSizeConvert);
+			mYUVNewheap = mYUVPictureBuffer->getMemory(&newoffset, &newsize);
             
-  
-#if TIMECHECK
+            // buffer from v4l holding the actual image
+            uint8_t *pYuvBuffer = (uint8_t*)buffer.m.userptr;    
+            
+			LOGD("PictureThread: generated a picture, pYuvBuffer=%p yuv_len=%d\n", 
+                pYuvBuffer, capture_len);
+                     
+              
 			PPM("YUV COLOR ROTATION STARTED\n");
-#endif  
-#define CONVERT        
-#ifdef CONVERT     
+#define R3D4_CONVERT        
+#ifdef R3D4_CONVERT     
              // color converter and image processing (flip/rotate)
              // neon lib doesnt seem to work, jpeg was corrupted?
              // so use own stuff
-            CColorConvert* pConvert = new CColorConvert(pYUVDataBuf, mPreviewWidth, mPreviewHeight, UYV2);
+            CColorConvert* pConvert = new CColorConvert(pYuvBuffer, mPreviewWidth, mPreviewHeight, UYV2);
             
             pConvert->writeFile(DUMP_PATH "before_rotate.bmp", BMP);      
             //pConvert->writeFile(DUMP_PATH "before_rotate.uyv", SOURCE);  
            
             if(mCameraIndex == VGA_CAMERA )
-            {
                 pConvert->rotateImage(ROTATE_270);
-            }
             else
-            {
                pConvert->flipImage(FLIP_VERTICAL);
-            }
             
             // write rotatet image back to input buffer
             pConvert->writeFile(DUMP_PATH "after_rotate.bmp", BMP);   
             pConvert->makeUYV2(NULL, INPLACE);  //INPLACE: no new buffer, write to input buffer   
             image_width = pConvert->getWidth();
             image_height = pConvert->geHeight();
+#else
+
 #endif            
-#if TIMECHECK
-			PPM("YUV COLOR ROTATION Done\n");
-#endif
+			PPM("YUV COLOR ROTATION Done\n");           
+         
+             //pYuvBuffer: [Reused]Output buffer with YUV 420P 270 degree rotated.             
+			if(mMsgEnabled & CAMERA_MSG_RAW_IMAGE)
+			{   
+                // convert pYuvBuffer(YUV422I) to mYUVPictureBuffer(YUV420P)
+				Neon_Convert_yuv422_to_YUV420P(pYuvBuffer, (uint8_t *)mYUVNewheap->base(), image_width, image_height);         	
+				mDataCb(CAMERA_MSG_RAW_IMAGE, mYUVPictureBuffer, mCallbackCookie);
+			}
+
 #endif //HARDWARE_OMX
 
 			if (mMsgEnabled & CAMERA_MSG_COMPRESSED_IMAGE)
 			{
 #ifdef HARDWARE_OMX  
-				int jpegSize = image_width * image_height*UYV_BYTES_PER_PIXEL;
-				capture_len = (image_width*image_height*UYV_BYTES_PER_PIXEL) ;
+                // int inputFormat = PIX_YUV420P;
+                // int imputSize = image_width * image_height * PIX_YUV420P_BYTES_PER_PIXEL; 
+
+                int inputFormat = PIX_YUV422I;
+                int inputSize = image_width * image_height * PIX_YUV422I_BYTES_PER_PIXEL;
+				int jpegSize = image_width * image_height * JPG_BYTES_PER_PIXEL;
                 
-				CreateExif(NULL, 0, pExifBuf, EXIF_Data_Size, 0);
-				HAL_PRINT("VGA EXIF size : %d\n", EXIF_Data_Size);
+				CreateExif(NULL, 0, pExifBuf, exifDataSize, 0);
+				HAL_PRINT("VGA EXIF size : %d\n", exifDataSize);
                 
 				mJPEGPictureHeap = new MemoryHeapBase(jpegSize + 256);
 				outBuffer = (void *)((unsigned long)(mJPEGPictureHeap->getBase()) + 128);
-#if TIMECHECK
-				PPM("BEFORE JPEG Encode Image\n");
-#endif
 
-                
-				HAL_PRINT("VGA capture : outbuffer = 0x%x, jpegSize = %d, yuv_buffer = 0x%x, yuv_len = %d, image_width = %d, image_height = %d, quality = %d, mippMode =%d\n", 
-							outBuffer, jpegSize, yuv_buffer, capture_len, image_width, image_height, mYcbcrQuality, mippMode); 
 
-				if(isStart_JPEG)
+      
+				HAL_PRINT("VGA capture : outbuffer = 0x%x, jpegSize = %d, pYuvBuffer = 0x%x, yuv_len = %d, image_width = %d, image_height = %d, quality = %d, mippMode =%d\n", 
+							outBuffer, jpegSize, pYuvBuffer, capture_len, image_width, image_height, mYcbcrQuality, mippMode); 
+
+				if(jpegEncoder)
 				{
-
-					err = jpegEncoder->encodeImage(outBuffer,   // void* outputBuffer, 
+                	PPM("BEFORE JPEG Encode Image\n");
+					err = jpegEncoder->encodeImage(
+                            outBuffer,                          // void* outputBuffer, 
                             jpegSize,                           // int outBuffSize, 
-                            (uint8_t*)pYUVDataBuf,              // void *inputBuffer, 
-                            capture_len,                        // int inBuffSize, 
+                            pYuvBuffer,                         // void *inputBuffer, 
+                            inputSize,                          // int inBuffSize, 
                             pExifBuf,                           // unsigned char* pExifBuf,
-                            EXIF_Data_Size,                     // int ExifSize,
+                            exifDataSize,                       // int ExifSize,
                             image_width,	                    // int width, 
                             image_height,	                    // int height, 
                             mThumbnailWidth,                    // int ThumbWidth, 
                             mThumbnailHeight,                   // int ThumbHeight, 
                             mYcbcrQuality,                      // int quality,
-                            PIX_YUV422I);                        // int isPixelFmt420p)
-     	
+                            inputFormat);                       // int isPixelFmt420p)
+                    PPM("AFTER JPEG Encode Image\n");
 					LOGD("JPEG ENCODE END\n");
 
-					if(err != true) {
+					if(err != true) 
+                    {
 						LOGE("Jpeg encode failed!!\n");
 						return -1;
-					} else {
+					} 
+                    else 
 						LOGD("Jpeg encode success!!\n");
-					}
-
 				}
-
-#if TIMECHECK
-				PPM("AFTER JPEG Encode Image\n");
-#endif
 
 				mJPEGPictureMemBase = new MemoryBase(mJPEGPictureHeap, 128, jpegEncoder->jpegSize);
 
@@ -713,26 +705,16 @@ s_fmt_fail:
 				mJPEGPictureHeap.clear();
 #endif //HARDWARE_OMX
 			}//END of CAMERA_MSG_COMPRESSED_IMAGE
+       
 
-			yuv_buffer = (uint8_t*)cfilledbuffer.m.userptr;		           
-
-			if(twoSecondReviewMode == 1)
-			{ 	
-				DrawOverlay(yuv_buffer, true);
-			}  
-			//yuv_buffer: [Reused]Output buffer with YUV 420P 270 degree rotated.             
-			if(mMsgEnabled & CAMERA_MSG_RAW_IMAGE)
-			{
-				Neon_Convert_yuv422_to_YUV420P((uint8_t *)mVGANewheap->base(), (uint8_t *)yuv_buffer, mPreviewHeight, mPreviewWidth);         	
-				mDataCb(CAMERA_MSG_RAW_IMAGE, mPictureBuffer, mCallbackCookie);
-			} 
-#ifdef CONVERT 
+ 
+#ifdef R3D4_CONVERT 
             delete pConvert;  
 #endif            
 
             
 		}//END of CAMERA_MODE_YUV
-
+        
 		mPictureBuffer.clear();
 		mPictureHeap.clear();
         
@@ -740,17 +722,24 @@ s_fmt_fail:
 		{
 			mFinalPictureBuffer.clear();
 			mFinalPictureHeap.clear();
-			mYUVPictureBuffer.clear();
-			mYUVPictureHeap.clear();
-		}
-        else
-        {
-            mVGAYUVPictureBuffer.clear();
-            mVGAYUVPictureHeap.clear();
-		}
 
+		}
+         
+        mYUVPictureBuffer.clear();
+        mYUVPictureHeap.clear();
+        
 		delete []pExifBuf;
 		mCaptureFlag = false;
+        
+#if OPEN_CLOSE_WORKAROUND
+			close(camera_device);
+			camera_device = open(VIDEO_DEVICE, O_RDWR);
+			if (camera_device < 0) 
+			{
+				LOGE ("!!!!!!!!!FATAL Error: Could not open the camera device: %s!!!!!!!!!\n", strerror(errno) );
+			}
+#endif        
+        
 		LOG_FUNCTION_NAME_EXIT
 
 		return NO_ERROR;
