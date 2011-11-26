@@ -2877,6 +2877,33 @@ exit:
 		return 0;
 	}
 #endif
+	int CameraHal::setFlip(int flip)
+	{
+        struct v4l2_control vc;      
+       // int old_flip;
+        
+        // //get old flip
+        // CLEAR(vc);
+        // vc.id = V4L2_CID_FLIP;
+        // vc.value = 0;
+        // if (ioctl (camera_device, VIDIOC_G_CTRL, &vc) < 0)
+        // {
+            // LOGE("get fw version fail\n");
+        // }
+
+        // old_flip = vc.value;
+
+        //set new flip
+        CLEAR(vc);
+        vc.id = V4L2_CID_FLIP;                
+        vc.value = flip;
+        if (ioctl (camera_device, VIDIOC_S_CTRL, &vc) < 0) {
+            LOGE("V4L2_CID_FLIP fail!\n");
+            return UNKNOWN_ERROR;  
+        }
+        return 0;
+    }
+    
 	int CameraHal::setCAFStart(int start)
 	{
 		LOG_FUNCTION_NAME

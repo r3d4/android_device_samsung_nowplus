@@ -450,7 +450,11 @@ s_fmt_fail:
 			LOGE ("Failed to set VIDIOC_S_FMT.\n");
 			return -1;
 		}
-
+#if OMAP_SCALE       
+        if(mCameraIndex == VGA_CAMERA && mCamMode != VT_MODE)
+            if(orientation == 0 || orientation == 180)
+                setFlip(CAMERA_FLIP_MIRROR);
+#endif
 		/* Shutter CallBack */
 		if(mMsgEnabled & CAMERA_MSG_SHUTTER)
 		{
@@ -522,7 +526,11 @@ s_fmt_fail:
 			LOGE("VIDIOC_STREAMON Failed\n");
 			return -1;
 		}
-         
+#if OMAP_SCALE          
+        if(mCameraIndex == VGA_CAMERA && mCamMode != VT_MODE)
+            if(orientation == 0 || orientation == 180)
+                setFlip(CAMERA_FLIP_NONE);
+#endif                
         // camera returns processed jpeg image
 		if(mCamera_Mode == CAMERA_MODE_JPEG)
 		{
@@ -614,27 +622,28 @@ s_fmt_fail:
 #if TIMECHECK
 			PPM("YUV COLOR ROTATION STARTED\n");
 #endif  
-//#define CONVERT        
+#define CONVERT        
 #ifdef CONVERT     
-             //dump rgb 
+             // color converter and image processing (flip/rotate)
+             // neon lib doesnt seem to work, jpeg was corrupted?
+             // so use own stuff
             CColorConvert* pConvert = new CColorConvert(pYUVDataBuf, mPreviewWidth, mPreviewHeight, UYV2);
             
             pConvert->writeFile(DUMP_PATH "before_rotate.bmp", BMP);      
-            pConvert->writeFile(DUMP_PATH "before_rotate.uyv", SOURCE);  
+            //pConvert->writeFile(DUMP_PATH "before_rotate.uyv", SOURCE);  
            
             if(mCameraIndex == VGA_CAMERA )
             {
                 pConvert->rotateImage(ROTATE_270);
-                //pConvert->flipImage(FLIP_HORIZONTAL);
             }
             else
             {
-                pConvert->flipImage(FLIP_VERTICAL);
+               pConvert->flipImage(FLIP_VERTICAL);
             }
             
             // write rotatet image back to input buffer
             pConvert->writeFile(DUMP_PATH "after_rotate.bmp", BMP);   
-            pConvert->makeUYV2(NULL, INPLACE);  //INPLACE no new buffer, write to input buffer   
+            pConvert->makeUYV2(NULL, INPLACE);  //INPLACE: no new buffer, write to input buffer   
             image_width = pConvert->getWidth();
             image_height = pConvert->geHeight();
 #endif            

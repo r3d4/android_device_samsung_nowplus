@@ -388,7 +388,8 @@ namespace android {
 			int setFaceDetectLockUnlock(int );
 			int setObjectTrackingStartStop(int );
 			int setTouchAFStartStop(int );
-			int setDefultIMEI(int );		
+			int setDefultIMEI(int );	
+            int setFlip(int );            
 			int setCAFStart(int );	
 			int setCAFStop(int );		
 
