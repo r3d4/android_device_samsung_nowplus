@@ -514,10 +514,9 @@ s_fmt_fail:
 				return NO_ERROR;           
 			}
 		}
-#if TIMECHECK
 		PPM("AFTER CAPTURE YUV IMAGE\n");
-#endif
 		/* turn off streaming */
+        
 		if (ioctl(camera_device, VIDIOC_STREAMOFF, &creqbuf.type) < 0) 
 		{
 			LOGE("VIDIOC_STREAMON Failed\n");
