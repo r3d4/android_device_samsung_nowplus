@@ -510,10 +510,16 @@ namespace android {
 			p.setPreviewFrameRate(30);
 			p.setPictureSize(PICTURE_WIDTH, PICTURE_HEIGHT);
 
-			//Thumbnail			
+			//Thumbnail	
+#if 0            
 			p.set(p.KEY_SUPPORTED_JPEG_THUMBNAIL_SIZES, "640x480,0x0");
 			p.set(p.KEY_JPEG_THUMBNAIL_WIDTH, "640");
 			p.set(p.KEY_JPEG_THUMBNAIL_HEIGHT, "480");
+#else       //TI omx encoder doesnt seem to support higher thumbnail resolutions
+            p.set(p.KEY_SUPPORTED_JPEG_THUMBNAIL_SIZES, "160x120,0x0");
+			p.set(p.KEY_JPEG_THUMBNAIL_WIDTH, "160");
+			p.set(p.KEY_JPEG_THUMBNAIL_HEIGHT, "120");
+#endif
 			p.set(p.KEY_JPEG_THUMBNAIL_QUALITY, "100");
             
             p.set(CameraParameters::KEY_SMOOTH_ZOOM_SUPPORTED, mCameraIndex ? "false" : "true");
@@ -543,8 +549,6 @@ namespace android {
 			p.set(p.KEY_JPEG_THUMBNAIL_WIDTH, "160");
 			p.set(p.KEY_JPEG_THUMBNAIL_HEIGHT, "120");
 			p.set(p.KEY_JPEG_THUMBNAIL_QUALITY, "100"); 
-           
-
 		}
 
 		p.set(p.KEY_SUPPORTED_PICTURE_FORMATS,"jpeg");

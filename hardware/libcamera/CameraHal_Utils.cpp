@@ -353,13 +353,17 @@ s_fmt_fail:
 
 		return 0;
 	}
-
+#define R3D4_CONVERT  
 	int CameraHal::CapturePicture()
 	{
 		int image_width, image_height, preview_width, preview_height;
         int capture_len;
 		unsigned long base, offset;
-		
+      
+#ifdef R3D4_CONVERT     
+        int useRotation = 0;    // use rotation class?
+        CColorConvert* pConvert;    //class for image processing
+#endif		
 		struct v4l2_buffer buffer; // for VIDIOC_QUERYBUF and VIDIOC_QBUF
 		struct v4l2_format format;
 		//struct v4l2_buffer cfilledbuffer; // for VIDIOC_DQBUF
@@ -392,20 +396,10 @@ s_fmt_fail:
         
         // clear EXIF information
         memset(pExifBuf, 0, sizeof(pExifBuf));
-
-		if (CameraSetFrameRate())
-		{
-			LOGE("Error in setting Camera frame rate\n");
-			return -1;
-		}
-
-		HAL_PRINT("\n\n\n PICTURE NUMBER =%d\n\n\n",++pictureNumber);
-
-		mParameters.getPictureSize(&image_width, &image_height);
-		mParameters.getPreviewSize(&preview_width, &preview_height);	
-		HAL_PRINT("Picture Size: Width = %d \t Height = %d\n", image_width, image_height);
-		HAL_PRINT("Preview Size: Width = %d \t Height = %d\n", preview_width, preview_height);
-
+        
+        if(mCameraIndex == VGA_CAMERA) 
+            useRotation = 1;
+            
 #if OPEN_CLOSE_WORKAROUND
 		close(camera_device);
 		camera_device = open(VIDEO_DEVICE, O_RDWR);
@@ -415,6 +409,19 @@ s_fmt_fail:
 					strerror(errno) );
 		}
 #endif
+
+		if (CameraSetFrameRate())
+		{
+			LOGE("Error in setting Camera frame rate\n");
+			return -1;
+		}
+        
+		HAL_PRINT("\n\n\n PICTURE NUMBER =%d\n\n\n",++pictureNumber);
+       
+        mParameters.getPictureSize(&image_width, &image_height);
+		mParameters.getPreviewSize(&preview_width, &preview_height);	
+		HAL_PRINT("Picture Size: Width = %d \t Height = %d\n", image_width, image_height);
+		HAL_PRINT("Preview Size: Width = %d \t Height = %d\n", preview_width, preview_height);
 
         /* set size & format of the video image */
 		format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -609,26 +616,29 @@ s_fmt_fail:
                      
               
 			PPM("YUV COLOR ROTATION STARTED\n");
-#define R3D4_CONVERT        
+    
 #ifdef R3D4_CONVERT     
-             // color converter and image processing (flip/rotate)
-             // neon lib doesnt seem to work, jpeg was corrupted?
-             // so use own stuff
-            CColorConvert* pConvert = new CColorConvert(pYuvBuffer, mPreviewWidth, mPreviewHeight, UYV2);
-            
-            pConvert->writeFile(DUMP_PATH "before_rotate.bmp", BMP);      
-            //pConvert->writeFile(DUMP_PATH "before_rotate.uyv", SOURCE);  
-           
-            if(mCameraIndex == VGA_CAMERA )
-                pConvert->rotateImage(ROTATE_270);
-            else
-               pConvert->flipImage(FLIP_VERTICAL);
-            
-            // write rotatet image back to input buffer
-            pConvert->writeFile(DUMP_PATH "after_rotate.bmp", BMP);   
-            pConvert->makeUYV2(NULL, INPLACE);  //INPLACE: no new buffer, write to input buffer   
-            image_width = pConvert->getWidth();
-            image_height = pConvert->geHeight();
+            if(useRotation)
+            {
+                 // color converter and image processing (flip/rotate)
+                 // neon lib doesnt seem to work, jpeg was corrupted?
+                 // so use own stuff
+                pConvert = new CColorConvert(pYuvBuffer, image_width, image_height, UYV2);
+                
+                pConvert->writeFile(DUMP_PATH "before_rotate.uyv", SOURCE);  
+                pConvert->writeFile(DUMP_PATH "before_rotate.bmp", BMP);      
+               
+                if(mCameraIndex == VGA_CAMERA )
+                    pConvert->rotateImage(ROTATE_270);
+                // else
+                   // pConvert->flipImage(FLIP_VERTICAL);
+                
+                // write rotatet image back to input buffer
+                pConvert->writeFile(DUMP_PATH "after_rotate.bmp", BMP);   
+                pConvert->makeUYV2(NULL, INPLACE);  //INPLACE: no new buffer, write to input buffer   
+                image_width = pConvert->getWidth();
+                image_height = pConvert->geHeight();
+            }
 #else
 
 #endif            
@@ -662,7 +672,7 @@ s_fmt_fail:
 
 
       
-				HAL_PRINT("VGA capture : outbuffer = 0x%x, jpegSize = %d, pYuvBuffer = 0x%x, yuv_len = %d, image_width = %d, image_height = %d, quality = %d, mippMode =%d\n", 
+				HAL_PRINT("YUV capture : outbuffer = 0x%x, jpegSize = %d, pYuvBuffer = 0x%x, yuv_len = %d, image_width = %d, image_height = %d, quality = %d, mippMode =%d\n", 
 							outBuffer, jpegSize, pYuvBuffer, capture_len, image_width, image_height, mYcbcrQuality, mippMode); 
 
 				if(jpegEncoder)
