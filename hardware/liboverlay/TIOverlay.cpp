@@ -2067,8 +2067,8 @@ int overlay_data_context_t::overlay_queueBuffer(struct overlay_data_device_t *de
         ctx->omap_overlay->dataReady = 1;
         ctx->enable_streaming_locked(ctx->omap_overlay);
     }
+    
     rc = ctx->omap_overlay->qd_buf_count;
-    ctx->omap_overlay->mapping_data->nQueueToOverlay = rc;
 EXIT:
     pthread_mutex_unlock(&ctx->omap_overlay->lock);
     return ( rc );
@@ -2092,8 +2092,13 @@ void* overlay_data_context_t::overlay_getBufferAddress(struct overlay_data_devic
     int fd = ctx->omap_overlay->getdata_videofd();
     ret = v4l2_overlay_query_buffer(fd, (int)buffer, &buf);
     if (ret)
-        return NULL;
+    {
+         //[[OVL-DE-Q_PATCH
+        ctx->omap_overlay->mapping_data->nQueueToOverlay = -1;   //OVL_DE-Q_PATCH //VIK_DBG  0 Not Q to Ovl, 1 Q to Ovl, -1 Query returned Error.
+        //OVL_DE-Q_PATCH]]
 
+        return NULL;
+    }
     // Initialize ctx->mapping_data
     memset(ctx->omap_overlay->mapping_data, 0, sizeof(mapping_data_t));
 
@@ -2101,11 +2106,22 @@ void* overlay_data_context_t::overlay_getBufferAddress(struct overlay_data_devic
     ctx->omap_overlay->mapping_data->length = buf.length;
     ctx->omap_overlay->mapping_data->offset = buf.m.offset;
     ctx->omap_overlay->mapping_data->ptr = NULL;
-
+    
+    //[[ OVL_DE-Q_PATCH
+    if((buf.flags & V4L2_BUF_FLAG_QUEUED) || (buf.flags & V4L2_BUF_FLAG_DONE))
+    {
+        ctx->omap_overlay->mapping_data->nQueueToOverlay = 1;   //OVL_DE-Q_PATCH //VIK_DBG  0 Not Q to Ovl, 1 Q to Ovl, -1 Query returned Error.
+    }
+    else
+    {
+        ctx->omap_overlay->mapping_data->nQueueToOverlay = 0;   //OVL_DE-Q_PATCH //VIK_DBG  0 Not Q to Ovl, 1 Q to Ovl, -1 Query returned Error.
+    }
+    // OVL_DE-Q_PATCH]]
+    
     if ((int)buffer >= 0 && (int)buffer < ctx->omap_overlay->num_buffers) {
         ctx->omap_overlay->mapping_data->ptr = ctx->omap_overlay->buffers[(int)buffer];
-        LOGE("Buffer/%d/addr=%08lx/len=%d \n", (int)buffer, (unsigned long)ctx->omap_overlay->mapping_data->ptr,
-             ctx->omap_overlay->buffers_len[(int)buffer]);
+        LOGV("Buffer/%d/addr=%08lx/len=%d/stats=%d\n", (int)buffer, (unsigned long)ctx->omap_overlay->mapping_data->ptr,
+             ctx->omap_overlay->buffers_len[(int)buffer],ctx->omap_overlay->mapping_data->nQueueToOverlay);
     }
 
     return (void *)ctx->omap_overlay->mapping_data;

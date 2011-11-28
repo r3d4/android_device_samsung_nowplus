@@ -819,25 +819,12 @@ namespace android {
 #endif
 						//In burst mode the preview is not reconfigured between each picture 
 						//so it can not be based on it to decide whether the state is incorrect or not
-
 						if( camera_device < 0)
 						{
 							err = -1;
 						}
 						else 
-
 						{
-#ifdef OPP_OPTIMIZATION
-							if ( RMProxy_RequestBoost(MAX_BOOST) != OMX_ErrorNone ) 
-							{
-								LOGE("OPP Boost failed\n");
-							} 
-							else 
-							{
-								LOGE("OPP Boost success\n");
-							}
-
-#endif
 							if(mPreviewRunning)
 							{
 								if( CameraStop() < 0)
@@ -1311,7 +1298,7 @@ exit:
 #ifndef MOD
 				if(mCameraIndex == VGA_CAMERA && mCamMode == VT_MODE)
 				{
-					mOverlay->setParameter(MIRRORING,1); //selwin added
+					mOverlay->setParameter(MIRRORING, 1 ); //selwin added
 				}
 
 				if(mCameraIndex == MAIN_CAMERA &&(mCamMode == CAMERA_MODE || mCamMode == CAMCORDER_MODE))
@@ -1904,12 +1891,10 @@ exit:
 #ifdef HARDWARE_OMX
 #if JPEG
 		if( jpegEncoder )
-		{
 			delete jpegEncoder;
-			jpegEncoder = NULL;
-		}
 #ifdef jpeg_decoder
-		delete jpegDecoder;
+        if( jpegDecoder )
+            delete jpegDecoder;
 #endif //jpeg_decoder
 #endif //JPEG
 #endif //HARDWARE_OMX
