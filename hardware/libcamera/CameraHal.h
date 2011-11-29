@@ -160,7 +160,6 @@ extern "C" {
 #define PPM(str)
 #endif
 
-#define HALO_ISO
 
 namespace android {
 
@@ -361,12 +360,7 @@ namespace android {
 			status_t setBrightness(int brightness);
 			status_t setExposure(int exposure);
 			status_t setZoom(int zoom);
-
-#ifdef HALO_ISO
 			status_t setISO(const char* iso);
-#else
-			void setISO(int iso);
-#endif
 			status_t setContrast(int contrast);
 			status_t setSaturation(int saturation);
 			status_t setSharpness(int sharpness);
@@ -435,13 +429,8 @@ namespace android {
 			double getGPSLongitude() const;
 			double getGPSAltitude() const;
 			long getGPSTimestamp() const;
-			const char *getGPSProcessingMethod() const;		
-			
-#ifdef HALO_ISO    
+			const char *getGPSProcessingMethod() const;		    
 			const char *getISO() const;
-#else
-			int getISO() const;
-#endif
 			int getContrast() const;
 			int getSaturation() const;
 			int getSharpness() const;
@@ -598,9 +587,7 @@ namespace android {
 			unsigned int mOldResetCount;
 			int mPreviousFlag;
 			int dequeue_from_dss_failed;	
-#ifdef HALO_ISO
 			int mPreviousISO;
-#endif
 			int mPreviewWidth;
 			int mPreviewHeight;
 
