@@ -203,7 +203,7 @@ namespace android {
 		"max"				//CAMERA_MAX_ANTIBANDING,
 	};
 #define MAX_ANTI_BANDING_VALUES 5
-#define MAX_ZOOM 30
+#define MAX_ZOOM 12
 
 #define CLEAR(x) memset (&(x), 0, sizeof (x))
 
@@ -490,10 +490,10 @@ namespace android {
 		if (cameraId == MAIN_CAMERA)
 		{
 			p.set(p.KEY_SUPPORTED_PREVIEW_SIZES, "800x480,720x480,640x480,352x288");
-			p.set(p.KEY_SUPPORTED_PICTURE_SIZES, "2560x1920,2560x1536,2048x1536,2048x1232,1600x1200,1600x960,800x480,640x480");
+            p.set(p.KEY_SUPPORTED_PICTURE_SIZES, "2560x1920,2048x1536,1600x1200,1280x960,800x480,640x480");
 			p.set(p.KEY_SUPPORTED_PREVIEW_FPS_RANGE, "(7000,30000)");
 			p.set(p.KEY_PREVIEW_FPS_RANGE, "7000,30000");
-			p.set(p.KEY_FOCAL_LENGTH, "3.43");
+			p.set(p.KEY_FOCAL_LENGTH, "4.61");
 			p.set(p.KEY_FOCUS_DISTANCES, "0.10,1.20,Infinity");
 			p.set(p.KEY_SUPPORTED_FOCUS_MODES,"auto,macro");
 			p.set(p.KEY_FOCUS_MODE, p.FOCUS_MODE_AUTO);
@@ -501,24 +501,23 @@ namespace android {
             p.set(p.KEY_SCENE_MODE, "auto");     
 			p.set(p.KEY_ZOOM, "0");
 			p.set(p.KEY_ZOOM_SUPPORTED, "true");
-			p.set(p.KEY_MAX_ZOOM, "30");      
-			p.set(p.KEY_ZOOM_RATIOS,
-				"100,110,120,130,140,150,160,170,180,190,"
-				"200,210,220,230,240,250,260,270,280,290,"
-				"300,310,320,330,340,350,360,370,380,390,400");         
+            p.set(p.KEY_MAX_ZOOM, "12");
+            p.set(p.KEY_ZOOM, "0");    
+            p.set(p.KEY_ZOOM_RATIOS, "100,125,150,175,200,225,250,275,300,325,350,375,400");    
 			p.set(p.KEY_SUPPORTED_PREVIEW_FRAME_RATES, "30,20,15,10,7");
 			p.setPreviewFrameRate(30);
 			p.setPictureSize(PICTURE_WIDTH, PICTURE_HEIGHT);
 
 			//Thumbnail	
-#if 0            
-			p.set(p.KEY_SUPPORTED_JPEG_THUMBNAIL_SIZES, "640x480,0x0");
-			p.set(p.KEY_JPEG_THUMBNAIL_WIDTH, "640");
-			p.set(p.KEY_JPEG_THUMBNAIL_HEIGHT, "480");
-#else       //TI omx encoder doesnt seem to support higher thumbnail resolutions
+#ifdef MAIN_CAM_CAPTURE_YUV       
+            //TI omx encoder doesnt seem to support higher thumbnail resolutions
             p.set(p.KEY_SUPPORTED_JPEG_THUMBNAIL_SIZES, "160x120,0x0");
 			p.set(p.KEY_JPEG_THUMBNAIL_WIDTH, "160");
 			p.set(p.KEY_JPEG_THUMBNAIL_HEIGHT, "120");
+#else            
+			p.set(p.KEY_SUPPORTED_JPEG_THUMBNAIL_SIZES, "640x480,0x0");
+			p.set(p.KEY_JPEG_THUMBNAIL_WIDTH, "640");
+			p.set(p.KEY_JPEG_THUMBNAIL_HEIGHT, "480");
 #endif
 			p.set(p.KEY_JPEG_THUMBNAIL_QUALITY, "100");
             
@@ -963,7 +962,7 @@ namespace android {
 
 		if(!camera_device)
 		{
-			LOGD("getCameraSelect value,[%x] (0 : Rear, 1 : Front) \n", cameraId);    
+			
 			if(cameraId) //front VGA camera 
 			{
 				camera_device = open(VIDEO_DEVICE5, O_RDWR);
@@ -973,10 +972,14 @@ namespace android {
 			else    //main 5MP camera
 			{
 				camera_device = open(VIDEO_DEVICE, O_RDWR);
-				mCamera_Mode = CAMERA_MODE_YUV;//CAMERA_MODE_JPEG;
+#ifdef MAIN_CAM_CAPTURE_YUV
+				mCamera_Mode = CAMERA_MODE_YUV;
+#else
+                mCamera_Mode = CAMERA_MODE_JPEG;
+#endif                
 				mCameraIndex = MAIN_CAMERA;
 			}
-
+			LOGD("CameraCreate: camera = '%s' \n", (mCameraIndex==MAIN_CAMERA)?"main 5M":"front vga");    
 			if (camera_device < 0) 
 			{
 				LOGE ("Could not open the camera device: %s\n",  strerror(errno) );

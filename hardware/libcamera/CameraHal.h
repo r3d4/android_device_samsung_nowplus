@@ -83,6 +83,8 @@ extern "C" {
 #define RESIZER             1
 #define JPEG                1
 
+//#define MAIN_CAM_CAPTURE_YUV    // use YUV,OMX jpeg encoder instead of camera ISP
+
 #define OMAP_SCALE			0	// RealCAM Preview & Capture landscpae view option for GB
 
 #define CLEAR(x) memset (&(x), 0, sizeof (x))
@@ -119,7 +121,7 @@ extern "C" {
 #define JPEG_THUMBNAIL_HEIGHT		120
 
 #define PIXEL_FORMAT           		V4L2_PIX_FMT_UYVY
-#define PIXEL_FORMAT_JPEG      		V4L2_PIX_FMT_UYVY   //V4L2_PIX_FMT_JPEG
+#define PIXEL_FORMAT_JPEG      		V4L2_PIX_FMT_JPEG
 
 #define VIDEO_FRAME_COUNT_MAX		NUM_OVERLAY_BUFFERS_REQUESTED
 #define MAX_CAMERA_BUFFERS    		NUM_OVERLAY_BUFFERS_REQUESTED
@@ -139,6 +141,7 @@ extern "C" {
 #define JPG_BYTES_PER_PIXEL         2
 #define PIX_YUV422I_BYTES_PER_PIXEL 2
 #define PIX_YUV420P_BYTES_PER_PIXEL 3/2
+
 
 #ifndef max
 #define max(a,b) ({typeof(a) _a = (a); typeof(b) _b = (b); _a > _b ? _a : _b; })
@@ -166,8 +169,8 @@ namespace android {
 #define LIBICAPTURE_NAME 						"libicapture.so"
 
 #define	CAM_EXIF_DEFAULT_EXIF_MAKER_INFO		"SAMSUNG"
-#define	CAM_EXIF_DEFAULT_EXIF_MODEL_INFO		"ZOOM BOARD"
-#define	CAM_EXIF_DEFAULT_EXIF_SOFTWARE_INFO		"Eclair"
+#define	CAM_EXIF_DEFAULT_EXIF_MODEL_INFO		"NOWPLUS BOARD"
+#define	CAM_EXIF_DEFAULT_EXIF_SOFTWARE_INFO		"Gingerbread"
 
 //#define LIB3AFW "libMMS3AFW.so"	// 3A FW
 
