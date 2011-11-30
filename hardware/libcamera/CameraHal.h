@@ -334,6 +334,7 @@ namespace android {
 			void convertFromDecimalToGPSFormat(double,int&,int&,double&);
 			void getExifInfoFromDriver(v4l2_exif* );
 			int convertToExifLMH(int, int);
+			int roundIso(int iso);
 			//]
             void setRotateYUV420(uint8_t* pInputBuf, uint8_t* pOutputBuf, int w, int h, int angle);
             void setRotateYUV422(uint8_t* pInputBuf, uint8_t* pOutputBuf, int w, int h, int angle);

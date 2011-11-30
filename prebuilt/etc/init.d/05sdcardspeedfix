@@ -1,0 +1,8 @@
+#!/system/bin/sh
+#
+READ_AHEAD=256
+
+echo $READ_AHEAD > /sys/block/mmcblk0/bdi/read_ahead_kb
+echo $READ_AHEAD > /sys/block/mmcblk1/bdi/read_ahead_kb
+
+echo "SD Card speed fix was ENABLED read_ahead= $READ_AHEAD"

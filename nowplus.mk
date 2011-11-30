@@ -93,6 +93,15 @@ PRODUCT_COPY_FILES += \
     device/samsung/nowplus/init.samsung.rc:root/init.samsung.rc \
     device/samsung/nowplus/ueventd.samsung.rc:root/ueventd.samsung.rc
 
+# system/bin
+PRODUCT_COPY_FILES += \
+    device/samsung/nowplus/prebuilt/bin/sysinit:system/bin/sysinit
+
+# system/etc/init.d
+PRODUCT_COPY_FILES += \	
+    device/samsung/nowplus/prebuilt/etc/init.d/99complete:system/etc/init.d/99complete \
+    device/samsung/nowplus/prebuilt/etc/init.d/05sdcardspeedfix:system/etc/init.d/05sdcardspeedfix \
+    device/samsung/nowplus/prebuilt/etc/init.d/10overclock:system/etc/init.d/10overclock
 
 # system/etc/
 PRODUCT_COPY_FILES += \
@@ -126,7 +135,8 @@ PRODUCT_COPY_FILES += \
     device/samsung/nowplus/prebuilt/modules/rfs.ko:system/lib/modules/rfs.ko \
     device/samsung/nowplus/prebuilt/modules/Si4709_driver.ko:system/lib/modules/Si4709_driver.ko \
     device/samsung/nowplus/prebuilt/modules/vibrator.ko:system/lib/modules/vibrator.ko \
-    device/samsung/nowplus/prebuilt/modules/vt_sensor.ko:system/lib/modules/vt_sensor.ko
+    device/samsung/nowplus/prebuilt/modules/vt_sensor.ko:system/lib/modules/vt_sensor.ko \
+    device/samsung/nowplus/prebuilt/modules/overclock_nowplus_22.ko:system/lib/modules/overclock_nowplus_22.ko
 
 
 # system/media/

@@ -361,7 +361,6 @@ s_fmt_fail:
 		unsigned long base, offset;
       
 #ifdef R3D4_CONVERT     
-        int useRotation = 0;    // use rotation class?
         CColorConvert* pConvert;    //class for image processing
 #endif		
 		struct v4l2_buffer buffer; // for VIDIOC_QUERYBUF and VIDIOC_QBUF
@@ -393,33 +392,20 @@ s_fmt_fail:
 		int orientation = getOrientation();
 
 		LOG_FUNCTION_NAME
-               
-        if(mCameraIndex == VGA_CAMERA)		
-            useRotation = 1;
-            
-#if OPEN_CLOSE_WORKAROUND
-		close(camera_device);
-		camera_device = open(VIDEO_DEVICE, O_RDWR);
-		if (camera_device < 0) 
-		{
-			LOGE ("!!!!!!!!!FATAL Error: Could not open the camera device: %s!!!!!!!!!\n",
-					strerror(errno) );
-		}
-#endif
-
+		
+		                           
 		if (CameraSetFrameRate())
 		{
 			LOGE("Error in setting Camera frame rate\n");
 			return -1;
 		}
         
-		HAL_PRINT("\n\n\n PICTURE NUMBER =%d\n\n\n",++pictureNumber);
+		LOGD("\n\n\n PICTURE NUMBER =%d\n\n\n",++pictureNumber);
        
         mParameters.getPictureSize(&image_width, &image_height);
 		mParameters.getPreviewSize(&preview_width, &preview_height);	
-		HAL_PRINT("mCameraIndex = %d\n", mCameraIndex);
-		HAL_PRINT("Picture Size: Width = %d \t Height = %d\n", image_width, image_height);
-		HAL_PRINT("Preview Size: Width = %d \t Height = %d\n", preview_width, preview_height);
+		LOGV("mCameraIndex = %d\n", mCameraIndex);
+		LOGD("Picture Size: Width = %d \t Height = %d\n", image_width, image_height);
 
         /* set size & format of the video image */
 		format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -441,7 +427,7 @@ s_fmt_fail:
 		if (capture_len & 0xfff)   
 			capture_len = (capture_len & 0xfffff000) + 0x1000;
 
-		HAL_PRINT("capture: %s mode, pictureFrameSize = 0x%x = %d\n", 
+		LOGV("capture: %s mode, pictureFrameSize = 0x%x = %d\n", 
             (mCamera_Mode == CAMERA_MODE_JPEG)?"jpeg":"yuv", capture_len, capture_len);
 
             
@@ -467,7 +453,7 @@ s_fmt_fail:
 		{
 			mNotifyCb(CAMERA_MSG_SHUTTER, 0, 0, mCallbackCookie);
 		} 
-
+		
 		/* Check if the camera driver can accept 1 buffer */
 		creqbuf.type   = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 		creqbuf.memory = V4L2_MEMORY_USERPTR;
@@ -502,7 +488,7 @@ s_fmt_fail:
 			return -1;
 		}
 
-		HAL_PRINT("De-queue the next avaliable buffer\n");
+		LOGD("De-queue the next avaliable buffer\n");
 
 		/* De-queue the next avaliable buffer */       
         //try to get buffer from camearo for 10 times
@@ -624,7 +610,7 @@ s_fmt_fail:
 			PPM("YUV COLOR ROTATION STARTED\n");
     
 #ifdef R3D4_CONVERT     
-            if(useRotation)
+            if(mCameraIndex == VGA_CAMERA)
             {
 				LOGV("use rotation");
                  // color converter and image processing (flip/rotate)
@@ -746,30 +732,151 @@ s_fmt_fail:
         
 		delete []pExifBuf;
 		mCaptureFlag = false;
-        
-#if OPEN_CLOSE_WORKAROUND
-			close(camera_device);
-			camera_device = open(VIDEO_DEVICE, O_RDWR);
-			if (camera_device < 0) 
-			{
-				LOGE ("!!!!!!!!!FATAL Error: Could not open the camera device: %s!!!!!!!!!\n", strerror(errno) );
-			}
-#endif        
-        
+                
 		LOG_FUNCTION_NAME_EXIT
 
 		return NO_ERROR;
 
 	}
-
+	
+	int CameraHal::roundIso(int calIsoValue)
+	{
+		int tempISO;
+		if(calIsoValue < 8.909)
+		{
+			tempISO = 0;
+		}
+		else if(calIsoValue >=8.909 && calIsoValue < 11.22)
+		{
+			tempISO = 10;
+		}
+		else if(calIsoValue >=11.22 && calIsoValue < 14.14)
+		{
+			tempISO = 12;
+		}
+		else if(calIsoValue >=14.14 && calIsoValue < 17.82)
+		{
+			tempISO = 16;
+		}
+		else if(calIsoValue >=17.82 && calIsoValue < 22.45)
+		{
+			tempISO = 20;
+		}
+		else if(calIsoValue >=22.45 && calIsoValue < 28.28)
+		{
+			tempISO = 25;
+		}
+		else if(calIsoValue >=28.28 && calIsoValue < 35.64)
+		{
+			tempISO = 32;
+		}
+		else if(calIsoValue >=35.64 && calIsoValue < 44.90)
+		{
+			tempISO = 40;
+		}
+		else if(calIsoValue >=44.90 && calIsoValue < 56.57)
+		{
+			tempISO = 50;
+		}
+		else if(calIsoValue >=56.57 && calIsoValue < 71.27)
+		{
+			tempISO = 64;
+		}
+		else if(calIsoValue >=71.27 && calIsoValue < 89.09)
+		{
+			tempISO = 80;
+		}
+		else if(calIsoValue >=89.09 && calIsoValue < 112.2)
+		{
+			tempISO = 100;
+		}
+		else if(calIsoValue >=112.2 && calIsoValue < 141.4)
+		{
+			tempISO = 125;
+		}
+		else if(calIsoValue >=141.4 && calIsoValue < 178.2)
+		{
+			tempISO = 160;
+		}
+		else if(calIsoValue >=178.2 && calIsoValue < 224.5)
+		{
+			tempISO = 200;
+		}
+		else if(calIsoValue >=224.5 && calIsoValue < 282.8)
+		{
+			tempISO = 250;
+		}
+		else if(calIsoValue >=282.8 && calIsoValue < 356.4)
+		{
+			tempISO = 320;
+		}
+		else if(calIsoValue >=356.4 && calIsoValue < 449.0)
+		{
+			tempISO = 400;
+		}
+		else if(calIsoValue >=449.0 && calIsoValue < 565.7)
+		{
+			tempISO = 500;
+		}
+		else if(calIsoValue >=565.7 && calIsoValue < 712.7)
+		{
+			tempISO = 640;
+		}
+		else if(calIsoValue >=712.7 && calIsoValue < 890.9)
+		{
+			tempISO = 800;
+		}
+		else if(calIsoValue >=890.9 && calIsoValue < 1122)
+		{
+			tempISO = 1000;
+		}
+		else if(calIsoValue >=1122 && calIsoValue < 1414)
+		{
+			tempISO = 1250;
+		}
+		else if(calIsoValue >=1414 && calIsoValue < 1782)
+		{
+			tempISO = 160;
+		}
+		else if(calIsoValue >=1782 && calIsoValue < 2245)
+		{
+			tempISO = 2000;
+		}
+		else if(calIsoValue >=2245 && calIsoValue < 2828)
+		{
+			tempISO = 2500;
+		}
+		else if(calIsoValue >=2828 && calIsoValue < 3564)
+		{
+			tempISO = 3200;
+		}
+		else if(calIsoValue >=3564 && calIsoValue < 4490)
+		{
+			tempISO = 4000;
+		}
+		else if(calIsoValue >=4490 && calIsoValue < 5657)
+		{
+			tempISO = 5000;
+		}
+		else if(calIsoValue >=5657 && calIsoValue < 7127)
+		{
+			tempISO = 6400;
+		}
+		else
+		{
+			tempISO = 8000;
+		}
+		return tempISO;
+	}
+	
 	//[20091123 exif Ratnesh
 	void CameraHal::CreateExif(unsigned char* pInThumbnailData, int Inthumbsize,
 		unsigned char* pOutExifBuf, int& OutExifSize, int flag)
 	{
-
-		int orientationValue = getOrientation();
-		HAL_PRINT("CreateExif orientationValue = %d \n", orientationValue);				
-		
+		//                                0   90  180 270 360
+		const int MAIN_ORIENTATION[]  = { 1,  6,  3,  8,  1};
+		const int FRONT_ORIENTATION[] = { 3,  6,  1,  8,  3};
+			
 		ExifCreator* mExifCreator = new ExifCreator();
 		unsigned int ExifSize = 0;
 		ExifInfoStructure ExifInfo;
@@ -777,13 +884,13 @@ s_fmt_fail:
 		unsigned short tempISO = 0;
 		struct v4l2_exif exifobj;
 		
+		int orientationValue = getOrientation();
+		LOGV("CreateExif orientationValue = %d \n", orientationValue);	
 
 		memset(&ExifInfo, NULL, sizeof(ExifInfoStructure));
 
 		strcpy( (char *)&ExifInfo.maker, "SAMSUNG");
-		strcpy( (char *)&ExifInfo.software, "CM7");
 		
-
 		mParameters.getPictureSize((int*)&ExifInfo.imageWidth , (int*)&ExifInfo.imageHeight);
 		mParameters.getPictureSize((int*)&ExifInfo.pixelXDimension, (int*)&ExifInfo.pixelYDimension);
 
@@ -798,40 +905,21 @@ s_fmt_fail:
 			sprintf((char *)&ExifInfo.dateTimeDigitized, "%4d:%02d:%02d %02d:%02d:%02d", t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);						
 			sprintf((char *)&ExifInfo.dateTime, "%4d:%02d:%02d %02d:%02d:%02d", t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec); 					
 		}
-		
-		switch(orientationValue)
-		{            		
-			case 0:
-				ExifInfo.orientation                = 1 ;
-				break;
-			case 90:
-				ExifInfo.orientation                = 6 ;
-				break;
-			case 180:
-				ExifInfo.orientation                = 3 ;
-				break;
-			case 270:
-				ExifInfo.orientation                = 8 ;
-				break;
-			default:
-				ExifInfo.orientation                = 1 ;
-				break;
-		}
-		
+				
 		if(mCameraIndex==MAIN_CAMERA)
 		{
+			if(orientationValue<=360)
+				ExifInfo.orientation = MAIN_ORIENTATION[orientationValue/90];
+			else
+				ExifInfo.orientation = 0;
+			
 			getExifInfoFromDriver(&exifobj);
-			strcpy( (char *)&ExifInfo.model, "GT-I8320 Main 5M");
+			strcpy( (char *)&ExifInfo.model, "GT-I8320 M4MO");
 			int cam_ver = GetCamera_version();
-//	vc->value = fvl + (fvh << 8); m4mo
-//  vc->value = ISP_FW_ver[3] | (ISP_FW_ver[2] << 8) | (ISP_FW_ver[1] << 16) | (ISP_FW_ver[0] << 24); ce147
 			ExifInfo.Camversion[0] = (cam_ver & 0xFF);
 			ExifInfo.Camversion[1] = ((cam_ver >> 8) & 0xFF);
-			ExifInfo.Camversion[2] = ((cam_ver >> 16) & 0xFF);
-			ExifInfo.Camversion[3] = ((cam_ver >> 24) & 0xFF);
-			HAL_PRINT("CreateExif GetCamera_version =[%x][%x][%x][%x]\n", ExifInfo.Camversion[2],ExifInfo.Camversion[3],ExifInfo.Camversion[0],ExifInfo.Camversion[1]);	
-
-			sprintf((char *)&ExifInfo.software, "fw %02d.%02d prm %02d.%02d", ExifInfo.Camversion[2],ExifInfo.Camversion[3],ExifInfo.Camversion[0],ExifInfo.Camversion[1]); 	
+			//HAL_PRINT("CreateExif GetCamera_version =[%x][%x][%x][%x]\n", ExifInfo.Camversion[2],ExifInfo.Camversion[3],ExifInfo.Camversion[0],ExifInfo.Camversion[1]);	
+			sprintf((char *)&ExifInfo.software, "CM7 CAM-FW:%02X%02X", ExifInfo.Camversion[1], ExifInfo.Camversion[0]); 	
 // TODO: get thumbnail offset of m4mo jpeg data
 			// if(mThumbnailWidth > 0 && mThumbnailHeight > 0)
 			// {
@@ -866,7 +954,7 @@ s_fmt_fail:
 			ExifInfo.brightness.numerator       = exifobj.brigtness_numerator;
 			ExifInfo.brightness.denominator     = exifobj.brightness_denominator;
 			ExifInfo.iso                        = 1;
-			ExifInfo.isoSpeedRating             = exifobj.iso;
+			ExifInfo.isoSpeedRating             = roundIso(exifobj.iso);
 			// Flash
 			// bit 0    -whether the flash fired
 			// bit 1,2 -status of returned light
@@ -901,7 +989,13 @@ s_fmt_fail:
 		
 		else // VGA Camera
 		{	
-			strcpy( (char *)&ExifInfo.model, "GT-I8320 Front VGA");
+			if(orientationValue<=360)
+				ExifInfo.orientation = FRONT_ORIENTATION[orientationValue/90];
+			else
+				ExifInfo.orientation = 0;
+				
+			strcpy( (char *)&ExifInfo.model, "GT-I8320 S5KA3DFX");
+			sprintf((char *)&ExifInfo.software, "CM7 CAM-FW:%02X%02X", 0, 0); 
 			if(mThumbnailWidth > 0 && mThumbnailHeight > 0) {
 				 //thumb nail data added here 
                 ExifInfo.thumbStream                = pInThumbnailData;
