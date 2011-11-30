@@ -1,0 +1,12 @@
+diff --git a/init/builtins.c b/init/builtins.c
+index 56670cc..0bb4b59 100644
+--- a/init/builtins.c
++++ b/init/builtins.c
+@@ -292,6 +292,7 @@ static struct {
+     const char *name;
+     unsigned flag;
+ } mount_flags[] = {
++    { "bind",       MS_BIND  },
+     { "move",       MS_MOVE },
+     { "noatime",    MS_NOATIME },
+     { "nosuid",     MS_NOSUID },
