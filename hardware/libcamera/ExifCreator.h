@@ -7,6 +7,10 @@
 
 namespace android {
 
+
+#define EXIF_SET_JPEG_LENGTH		1
+#define EXIF_NOTSET_JPEG_LENGTH		0
+
 //exif Type
 #define	TYPE_BYTE		1
 #define	TYPE_ASCII		2

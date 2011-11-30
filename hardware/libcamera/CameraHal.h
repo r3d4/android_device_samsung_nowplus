@@ -83,6 +83,8 @@ extern "C" {
 #define RESIZER             1
 #define JPEG                1
 
+//#define MAIN_CAM_CAPTURE_YUV    // use YUV,OMX jpeg encoder instead of camera ISP
+
 #define OMAP_SCALE			0	// RealCAM Preview & Capture landscpae view option for GB
 
 #define CLEAR(x) memset (&(x), 0, sizeof (x))
@@ -119,7 +121,7 @@ extern "C" {
 #define JPEG_THUMBNAIL_HEIGHT		120
 
 #define PIXEL_FORMAT           		V4L2_PIX_FMT_UYVY
-#define PIXEL_FORMAT_JPEG      		V4L2_PIX_FMT_UYVY   //V4L2_PIX_FMT_JPEG
+#define PIXEL_FORMAT_JPEG      		V4L2_PIX_FMT_JPEG
 
 #define VIDEO_FRAME_COUNT_MAX		NUM_OVERLAY_BUFFERS_REQUESTED
 #define MAX_CAMERA_BUFFERS    		NUM_OVERLAY_BUFFERS_REQUESTED
@@ -140,6 +142,7 @@ extern "C" {
 #define PIX_YUV422I_BYTES_PER_PIXEL 2
 #define PIX_YUV420P_BYTES_PER_PIXEL 3/2
 
+
 #ifndef max
 #define max(a,b) ({typeof(a) _a = (a); typeof(b) _b = (b); _a > _b ? _a : _b; })
 #define min(a,b) ({typeof(a) _a = (a); typeof(b) _b = (b); _a < _b ? _a : _b; })
@@ -157,7 +160,6 @@ extern "C" {
 #define PPM(str)
 #endif
 
-#define HALO_ISO
 
 namespace android {
 
@@ -166,8 +168,8 @@ namespace android {
 #define LIBICAPTURE_NAME 						"libicapture.so"
 
 #define	CAM_EXIF_DEFAULT_EXIF_MAKER_INFO		"SAMSUNG"
-#define	CAM_EXIF_DEFAULT_EXIF_MODEL_INFO		"ZOOM BOARD"
-#define	CAM_EXIF_DEFAULT_EXIF_SOFTWARE_INFO		"Eclair"
+#define	CAM_EXIF_DEFAULT_EXIF_MODEL_INFO		"NOWPLUS BOARD"
+#define	CAM_EXIF_DEFAULT_EXIF_SOFTWARE_INFO		"Gingerbread"
 
 //#define LIB3AFW "libMMS3AFW.so"	// 3A FW
 
@@ -332,6 +334,7 @@ namespace android {
 			void convertFromDecimalToGPSFormat(double,int&,int&,double&);
 			void getExifInfoFromDriver(v4l2_exif* );
 			int convertToExifLMH(int, int);
+			int roundIso(int iso);
 			//]
             void setRotateYUV420(uint8_t* pInputBuf, uint8_t* pOutputBuf, int w, int h, int angle);
             void setRotateYUV422(uint8_t* pInputBuf, uint8_t* pOutputBuf, int w, int h, int angle);
@@ -358,12 +361,7 @@ namespace android {
 			status_t setBrightness(int brightness);
 			status_t setExposure(int exposure);
 			status_t setZoom(int zoom);
-
-#ifdef HALO_ISO
 			status_t setISO(const char* iso);
-#else
-			void setISO(int iso);
-#endif
 			status_t setContrast(int contrast);
 			status_t setSaturation(int saturation);
 			status_t setSharpness(int sharpness);
@@ -432,13 +430,8 @@ namespace android {
 			double getGPSLongitude() const;
 			double getGPSAltitude() const;
 			long getGPSTimestamp() const;
-			const char *getGPSProcessingMethod() const;		
-			
-#ifdef HALO_ISO    
+			const char *getGPSProcessingMethod() const;		    
 			const char *getISO() const;
-#else
-			int getISO() const;
-#endif
 			int getContrast() const;
 			int getSaturation() const;
 			int getSharpness() const;
@@ -595,9 +588,7 @@ namespace android {
 			unsigned int mOldResetCount;
 			int mPreviousFlag;
 			int dequeue_from_dss_failed;	
-#ifdef HALO_ISO
 			int mPreviousISO;
-#endif
 			int mPreviewWidth;
 			int mPreviewHeight;
 

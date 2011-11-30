@@ -4,7 +4,7 @@
 
 #define MAKER_NAME_LENGTH			20
 #define MODEL_NAME_LENGTH			20
-#define SOFTWARE_VERSION_LENGTH			5 
+#define SOFTWARE_VERSION_LENGTH			20 
 #define DATE_TIME_FIELD_LENGTH			50
 
 typedef struct 

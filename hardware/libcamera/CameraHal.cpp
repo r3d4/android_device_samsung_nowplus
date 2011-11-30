@@ -178,11 +178,10 @@ namespace android {
 		"spot", 			//M4MO_PHOTOMETRY_SPOT			3
 		"maxplus" 			//CAMERA_METERING_MAX_PLUS_1
 	};
-
 #define MAX_METERING 4
 
-#ifdef HALO_ISO
-#define MAX_ISO 7
+
+
 
 	static const char* iso_mode[] = {
 		"minus1", 			// to match metering
@@ -193,7 +192,7 @@ namespace android {
 		"400",    			//M4MO_ISO_400					5
 		"800",     			//M4MO_ISO_800					6
 	};
-#endif
+#define MAX_ISO 7
 
 	static const char* anti_banding_values[] = {
 		"off",				//CAMERA_ANTIBANDING_OFF, as defined in qcamera/common/camera.h
@@ -203,7 +202,7 @@ namespace android {
 		"max"				//CAMERA_MAX_ANTIBANDING,
 	};
 #define MAX_ANTI_BANDING_VALUES 5
-#define MAX_ZOOM 30
+#define MAX_ZOOM 12
 
 #define CLEAR(x) memset (&(x), 0, sizeof (x))
 
@@ -222,12 +221,13 @@ namespace android {
 #define FLASH_MOVIE_ON		2
 #define FLASH_MOVIE_AUTO3
 
-#define ISO_AUTO        	1
-#define ISO_50          	2
-#define ISO_100         	3
-#define ISO_200         	4
-#define ISO_400         	5
-#define ISO_800         	6
+#define ISO_AUTO        	1	// M4MO_ISO_AUTO			1
+#define ISO_50          	2   // M4MO_ISO_50				2
+#define ISO_100         	3  //  M4MO_ISO_100				3
+#define ISO_200         	4   // M4MO_ISO_200				4
+#define ISO_400         	5   // M4MO_ISO_400				5
+#define ISO_800         	6   // M4MO_ISO_800				6
+#define ISO_1000         	7   // M4MO_ISO_1000			7
 
 #define JPEG_SUPERFINE        1
 #define JPEG_FINE             2
@@ -465,11 +465,7 @@ namespace android {
 		mPreviousBrightness = 5;
 		mPreviousExposure = 5;
 		mPreviousZoom = 0;
-#ifdef HALO_ISO
 		mPreviousISO = 1;
-#else
-		mPreviousIso = 1;
-#endif
 		mPreviousContrast = 4;
 		mPreviousSaturation = 4;
 		mPreviousSharpness = 4;
@@ -477,7 +473,6 @@ namespace android {
 		mPreviousAntiShake = 1;
 		mPreviousFocus = 1;
 		mPreviousMetering = 2;
-		mPreviousPretty = 1;
 		mPreviousQuality = 100;
 		mPreviousFlag = 1;
 		mPreviousGPSLatitude = 0;
@@ -490,10 +485,10 @@ namespace android {
 		if (cameraId == MAIN_CAMERA)
 		{
 			p.set(p.KEY_SUPPORTED_PREVIEW_SIZES, "800x480,720x480,640x480,352x288");
-			p.set(p.KEY_SUPPORTED_PICTURE_SIZES, "2560x1920,2560x1536,2048x1536,2048x1232,1600x1200,1600x960,800x480,640x480");
+            p.set(p.KEY_SUPPORTED_PICTURE_SIZES, "2560x1920,2048x1536,1600x1200,1280x960,800x480,640x480");
 			p.set(p.KEY_SUPPORTED_PREVIEW_FPS_RANGE, "(7000,30000)");
 			p.set(p.KEY_PREVIEW_FPS_RANGE, "7000,30000");
-			p.set(p.KEY_FOCAL_LENGTH, "3.43");
+			p.set(p.KEY_FOCAL_LENGTH, "4.61");
 			p.set(p.KEY_FOCUS_DISTANCES, "0.10,1.20,Infinity");
 			p.set(p.KEY_SUPPORTED_FOCUS_MODES,"auto,macro");
 			p.set(p.KEY_FOCUS_MODE, p.FOCUS_MODE_AUTO);
@@ -501,23 +496,26 @@ namespace android {
             p.set(p.KEY_SCENE_MODE, "auto");     
 			p.set(p.KEY_ZOOM, "0");
 			p.set(p.KEY_ZOOM_SUPPORTED, "true");
-			p.set(p.KEY_MAX_ZOOM, "30");      
-			p.set(p.KEY_ZOOM_RATIOS,
-				"100,110,120,130,140,150,160,170,180,190,"
-				"200,210,220,230,240,250,260,270,280,290,"
-				"300,310,320,330,340,350,360,370,380,390,400");         
+            p.set(p.KEY_MAX_ZOOM, "12");
+            p.set(p.KEY_ZOOM, "0");    
+            p.set(p.KEY_ZOOM_RATIOS, "100,125,150,175,200,225,250,275,300,325,350,375,400");    
 			p.set(p.KEY_SUPPORTED_PREVIEW_FRAME_RATES, "30,20,15,10,7");
 			p.setPreviewFrameRate(30);
 			p.setPictureSize(PICTURE_WIDTH, PICTURE_HEIGHT);
-
-			//Thumbnail			
+			p.set(p.KEY_SUPPORTED_ISO_MODES, "auto,100,200,400,800");
+			p.set(p.KEY_ISO_MODE, "auto");
+			//Thumbnail	
+#ifdef MAIN_CAM_CAPTURE_YUV       
+            //TI omx encoder doesnt seem to support higher thumbnail resolutions
+            p.set(p.KEY_SUPPORTED_JPEG_THUMBNAIL_SIZES, "160x120,0x0");
+			p.set(p.KEY_JPEG_THUMBNAIL_WIDTH, "160");
+			p.set(p.KEY_JPEG_THUMBNAIL_HEIGHT, "120");
+#else            
 			p.set(p.KEY_SUPPORTED_JPEG_THUMBNAIL_SIZES, "640x480,0x0");
 			p.set(p.KEY_JPEG_THUMBNAIL_WIDTH, "640");
 			p.set(p.KEY_JPEG_THUMBNAIL_HEIGHT, "480");
-			p.set(p.KEY_JPEG_THUMBNAIL_QUALITY, "100");
-            
-            p.set(CameraParameters::KEY_SMOOTH_ZOOM_SUPPORTED, mCameraIndex ? "false" : "true");
-            
+#endif
+			p.set(p.KEY_JPEG_THUMBNAIL_QUALITY, "100");      
             p.set(p.KEY_SUPPORTED_FLASH_MODES,"off,on,auto,torch");
 		}
 		else
@@ -537,14 +535,12 @@ namespace android {
 			p.remove(p.KEY_ZOOM_SUPPORTED);
 			p.setPreviewFrameRate(15);
 			p.setPictureSize(PREVIEW_WIDTH, PREVIEW_HEIGHT);
-
+			p.set(p.KEY_SUPPORTED_ISO_MODES, "auto");
 			//Thumbnail
 			p.set(p.KEY_SUPPORTED_JPEG_THUMBNAIL_SIZES, "160x120,0x0");
 			p.set(p.KEY_JPEG_THUMBNAIL_WIDTH, "160");
 			p.set(p.KEY_JPEG_THUMBNAIL_HEIGHT, "120");
 			p.set(p.KEY_JPEG_THUMBNAIL_QUALITY, "100"); 
-           
-
 		}
 
 		p.set(p.KEY_SUPPORTED_PICTURE_FORMATS,"jpeg");
@@ -568,9 +564,9 @@ namespace android {
 		p.set(p.KEY_WHITE_BALANCE, p.WHITE_BALANCE_AUTO);
 
 		p.set(p.KEY_ANTIBANDING, "off");
-		p.set(p.KEY_SUPPORTED_ANTIBANDING, "auto,50hz,60hz,off");	
+		//p.set(p.KEY_SUPPORTED_ANTIBANDING, "auto,50hz,60hz,off");	
 		p.set(p.KEY_FLASH_MODE, p.FLASH_MODE_OFF);
-		p.set("zoom", "0");
+
 		p.set(p.KEY_JPEG_QUALITY, "100");
 		p.set(p.KEY_ROTATION,"0");
 		
@@ -959,7 +955,7 @@ namespace android {
 
 		if(!camera_device)
 		{
-			LOGD("getCameraSelect value,[%x] (0 : Rear, 1 : Front) \n", cameraId);    
+			
 			if(cameraId) //front VGA camera 
 			{
 				camera_device = open(VIDEO_DEVICE5, O_RDWR);
@@ -969,10 +965,14 @@ namespace android {
 			else    //main 5MP camera
 			{
 				camera_device = open(VIDEO_DEVICE, O_RDWR);
-				mCamera_Mode = CAMERA_MODE_YUV;//CAMERA_MODE_JPEG;
+#ifdef MAIN_CAM_CAPTURE_YUV
+				mCamera_Mode = CAMERA_MODE_YUV;
+#else
+                mCamera_Mode = CAMERA_MODE_JPEG;
+#endif                
 				mCameraIndex = MAIN_CAMERA;
 			}
-
+			LOGD("CameraCreate: camera = '%s' \n", (mCameraIndex==MAIN_CAMERA)?"main 5M":"front vga");    
 			if (camera_device < 0) 
 			{
 				LOGE ("Could not open the camera device: %s\n",  strerror(errno) );
@@ -1170,7 +1170,7 @@ exit:
 
 		setWB(getWBLighting());
 		setEffect(getEffect());
-		//setAntiBanding(getAntiBanding()); //not supported by m4mo
+		setISO(getISO());	
 		setSceneMode(getSceneMode());
 	    setFlashMode(getFlashMode());
 		setExposure(getExposure());
@@ -1187,15 +1187,12 @@ exit:
 		if(mSamsungCamera)
 		{		
 			HAL_PRINT("<<<<<<<< This is Samsung Camera App! >>>>>>>> \n");	
+			setSaturation(getSaturation());	
+			setSharpness(getSharpness());	
 			setWDRMode(getWDRMode());
-			setAntiShakeMode(getAntiShakeMode());		
 			setBrightness(getBrightness());
-			setISO(getISO());		
 			setContrast(getContrast());		
-			setSaturation(getSaturation());		
-			setSharpness(getSharpness());
-			setMetering(getMetering());	
-			setPrettyMode(getPrettyValue());		
+			setMetering(getMetering());		
 		}	
 
 		HAL_PRINT("CameraConfigure PreviewFormat: w=%d h=%d\n", format.fmt.pix.width, format.fmt.pix.height);	
@@ -2501,25 +2498,10 @@ exit:
 
 		mPreviewFrameSkipValue = getPreviewFrameSkipValue();
 
-		//if(strcmp(getSceneMode(),"auto") == 0)
-		{
-			if(setWB(getWBLighting()) < 0) return UNKNOWN_ERROR;
-			if(setEffect(getEffect()) < 0) return UNKNOWN_ERROR;
-			if(mCamMode != CAMCORDER_MODE)
-			{
-				if(mSamsungCamera)
-				{
-					if(setISO(getISO()) < 0) return UNKNOWN_ERROR;
-				}
-			}
-			if(mSamsungCamera)
-			{		
-				if(setSaturation(getSaturation()) < 0) 	return UNKNOWN_ERROR;
-				if(setSharpness(getSharpness()) < 0) 	return UNKNOWN_ERROR;
-			}
-		}
 
-		//if(setAntiBanding(getAntiBanding()) < 0)	return UNKNOWN_ERROR;
+		if(setWB(getWBLighting()) < 0) return UNKNOWN_ERROR;
+		if(setEffect(getEffect()) < 0) return UNKNOWN_ERROR;
+		if(setISO(getISO()) < 0) return UNKNOWN_ERROR;
 		if(setSceneMode(getSceneMode()) < 0) 		return UNKNOWN_ERROR;
 		if(setExposure(getExposure()) < 0) 			return UNKNOWN_ERROR;
 		if(setZoom(getZoomValue()) < 0) 			return UNKNOWN_ERROR;
@@ -2539,12 +2521,12 @@ exit:
 
 		if(mSamsungCamera)
 		{
+			if(setSharpness(getSharpness()) < 0) 	return UNKNOWN_ERROR;
+			if(setSaturation(getSaturation()) < 0) 	return UNKNOWN_ERROR;
 			if(setBrightness(getBrightness()) < 0)	return UNKNOWN_ERROR;
 			if(setContrast(getContrast()) < 0) 		return UNKNOWN_ERROR;
 			if(setMetering(getMetering()) < 0) 		return UNKNOWN_ERROR;
-			if(setPrettyMode(getPrettyValue()) < 0) return UNKNOWN_ERROR;	
-			if(setWDRMode(getWDRMode()) < 0) 		return UNKNOWN_ERROR;
-			if(setAntiShakeMode(getAntiShakeMode()) < 0)	return UNKNOWN_ERROR;		
+			if(setWDRMode(getWDRMode()) < 0) 		return UNKNOWN_ERROR;	
 			// chk_dataline
 			m_chk_dataline = mParameters.getInt("chk_dataline");
 			HAL_PRINT("\n == m_chk_dataline == %d\n",m_chk_dataline);
@@ -3033,53 +3015,6 @@ exit:
 		return NO_ERROR;
 	}
 
-	status_t CameraHal::setAntiBanding(const char* antibanding)
-	{
-#ifndef MOD 
-		if(camera_device && mCameraIndex == MAIN_CAMERA)
-		{
-			int antibandingValue =1;
-			int i = 0;
-
-			if(strcmp(antibanding, anti_banding_values[mPreviousAntibanding]) !=0)
-			{
-				HAL_PRINT("setAntiBanding : mPreviousAntibanding =%d antibanding=%s\n", mPreviousAntibanding,antibanding);
-				for(i = 1; i < MAX_ANTI_BANDING_VALUES; i++) 
-				{
-					if (! strcmp(anti_banding_values[i], antibanding)) 
-					{
-						HAL_PRINT("setAntiBanding : Match : %s : %d \n", antibanding, i);
-						antibandingValue = i;
-						break;
-					}
-				}
-
-				if(i == MAX_ANTI_BANDING_VALUES)
-				{
-					LOGE("setAntiBanding : invalid value\n");
-					return UNKNOWN_ERROR;           
-				}
-				else
-				{    
-           
-					struct v4l2_control vc;            
-					CLEAR(vc);
-					vc.id = V4L2_CID_ANTIBANDING;
-					vc.value = antibandingValue;
-
-					if (ioctl (camera_device, VIDIOC_S_CTRL, &vc) < 0)
-					{
-						LOGE("setAntiBanding fail\n");
-						return UNKNOWN_ERROR;  
-					}
-
-					mPreviousAntibanding = i;
-				}
-			}
-		}
-#endif
-		return NO_ERROR;
-	}
 
 	status_t CameraHal::setSceneMode(const char* scenemode)
 	{
@@ -3396,32 +3331,6 @@ exit:
 		return NO_ERROR;    
 	}
 
-	status_t CameraHal::setAntiShakeMode(int antiShake)
-	{
-		if(camera_device && mCameraIndex == MAIN_CAMERA)
-		{
-			struct v4l2_control vc;
-
-			if(antiShake != mPreviousAntiShake)
-			{
-				HAL_PRINT("setAntiShakeMode : mPreviousAntiShake =%d antiShake=%d\n", mPreviousAntiShake,antiShake);
-
-				CLEAR(vc);
-				vc.id = V4L2_CID_ANTISHAKE;
-				vc.value = antiShake+1;
-
-				if (ioctl (camera_device, VIDIOC_S_CTRL, &vc) < 0)
-				{
-					LOGE("setAntiShakeMode fail\n");
-					return UNKNOWN_ERROR; 
-				}
-			}
-
-			mPreviousAntiShake = antiShake;
-		}
-		return NO_ERROR;    
-	}
-
 	status_t CameraHal::setFocusMode(const char* focus)
 	{
 		if(camera_device && mCameraIndex == MAIN_CAMERA)
@@ -3512,14 +3421,17 @@ exit:
 		return NO_ERROR;    	
 	}
 
-#ifdef HALO_ISO
+
 	status_t CameraHal::setISO(const char* iso)
 	{
+		LOGV("setISO: iso=%s, mPreviousISO=%d", iso, mPreviousISO);
+#if 1		
 		if(camera_device && mCameraIndex == MAIN_CAMERA)
 		{
 			int isoValue =1;
 			int i = 1;
 			struct v4l2_control vc;
+			LOGV("setISO: iso=%s, mPreviousISO=%d", iso, mPreviousISO);
 			if(strcmp(iso, iso_mode[mPreviousISO]) !=0)
 			{
 				HAL_PRINT("setISO : mPreviousISO = %d iso= %s\n", mPreviousISO, iso); 
@@ -3546,81 +3458,8 @@ exit:
 				mPreviousISO = i;
 			}
 		}
-		return NO_ERROR;    	
-	}
-#else
-	status_t CameraHal::setISO(int iso)
-	{
-		if(camera_device && mCameraIndex == MAIN_CAMERA)
-		{
-			struct v4l2_control vc;
-
-			if(iso != mPreviousIso)
-			{
-				HAL_PRINT("setISO : mPreviousIso =%d iso=%d\n", mPreviousIso,iso);
-
-				CLEAR(vc);
-				vc.id = V4L2_CID_ISO;
-
-				switch(iso)
-				{
-					case 0:
-						vc.value = ISO_AUTO;
-						break;
-					case 50:
-						vc.value = ISO_50;
-						break;
-					case 100:
-						vc.value = ISO_100;
-						break;
-					case 200:
-						vc.value = ISO_200;
-						break;
-					case 400:
-						vc.value = ISO_400;
-						break;
-					case 800:
-						vc.value = ISO_800;
-						break;
-				}
-
-				if (ioctl (camera_device, VIDIOC_S_CTRL, &vc) < 0)
-				{
-					LOGE("setISO fail\n");
-					return UNKNOWN_ERROR; 
-				}
-			}
-
-			mPreviousIso = iso;
-		}
-		return NO_ERROR;	
-	}
 #endif
-
-	status_t CameraHal::setPrettyMode(int pretty)
-	{
-		if(camera_device && mCameraIndex == VGA_CAMERA)
-		{
-			struct v4l2_control vc;
-
-			if(pretty != mPreviousPretty)
-			{
-				HAL_PRINT("setPrettyMode : mPreviousPretty =%d pretty=%d\n", mPreviousPretty, pretty);
-
-				CLEAR(vc);
-				vc.id = V4L2_CID_PRETTY;
-				vc.value = pretty;
-
-				if (ioctl (camera_device, VIDIOC_S_CTRL, &vc) < 0)
-				{
-					LOGE("setPrettyMode fail\n");
-					return UNKNOWN_ERROR; 
-				}
-			}
-
-			mPreviousPretty = pretty;
-		}
-		return NO_ERROR;    
+		return NO_ERROR;    	
 	}
 
 	status_t CameraHal::setJpegMainimageQuality(int quality)
@@ -3873,7 +3712,6 @@ exit:
 		mParameters.set("CamcorderPreviewMode","0");
 		mParameters.set("vtmode","0");
 		mParameters.set("vtmodeforbg","0");
-		mParameters.set("pretty","1");
 		mParameters.set("previewframeskip","0");
 		mParameters.set("twosecondreviewmode","0");
 		mParameters.set("setcrop","0");
@@ -4127,25 +3965,6 @@ exit:
 		}
 	}
 
-	int CameraHal::getAntiShakeMode() const
-	{
-		int antiShakeValue = 0;
-		if( mParameters.get("anti-shake") )
-		{
-			antiShakeValue = atoi(mParameters.get("anti-shake"));
-			if(antiShakeValue != 0)
-			{
-				HAL_PRINT("in CameraParameters.cpp antiShakeValue not null int = %d \n", antiShakeValue);
-			}
-			return antiShakeValue;
-		}
-		else
-		{
-			HAL_PRINT("in CameraParameters.cpp anti-shake null \n");
-			return 0;
-		}
-	}
-
 	const char *CameraHal::getFocusMode() const
 	{
 		return mParameters.get(mParameters.KEY_FOCUS_MODE);
@@ -4156,31 +3975,13 @@ exit:
 		return mParameters.get("metering");
 	}
 
-#ifdef HALO_ISO
+
 	const char *CameraHal::getISO() const
 	{
+		LOGV("getISO");
 		return mParameters.get("iso");
 	}
-#else
-	int CameraHal::getISO() const
-	{
-		int isoValue = 0;
-		if( mParameters.get("iso") )
-		{
-			isoValue = atoi(mParameters.get("iso"));
-			if(isoValue!=0)
-			{
-				HAL_PRINT("in CameraParameters.cpp iso not null int = %d \n", isoValue);
-			}
-			return isoValue;
-		}
-		else
-		{
-			HAL_PRINT("in CameraParameters.cpp iso null \n");
-			return 0;
-		}
-	}
-#endif
+
 
 	int CameraHal::getCameraSelect() const
 	{
@@ -4239,24 +4040,6 @@ exit:
 		}
 	}
 
-	int CameraHal::getPrettyValue() const
-	{
-		int prettyValue = 0;
-		if( mParameters.get("pretty") )
-		{
-			prettyValue = atoi(mParameters.get("pretty"));
-			if(prettyValue != 0)
-			{
-				HAL_PRINT("CameraParameters.cpp :: pretty Value not null int = %d \n", prettyValue);
-			}
-			return prettyValue;
-		}
-		else
-		{
-			HAL_PRINT("CameraParameters.cpp :: pretty Value null \n");
-			return 0;
-		}
-	}
 
 	int CameraHal::getPreviewFrameSkipValue() const
 	{

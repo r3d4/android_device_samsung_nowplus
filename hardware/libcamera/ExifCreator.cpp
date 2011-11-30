@@ -53,21 +53,15 @@ unsigned int ExifCreator::ExifCreate_wo_GPS(unsigned char* pInput, ExifInfoStruc
 
 	unsigned int offset = 0;
 	unsigned int appLength = 0;
+	unsigned char app1Header[10]={0xff, 0xe1, 0x00, 0x08, 0x45, 0x78, 0x69, 0x66, 0x00, 0x00};
+	unsigned int app1HeaderSize = sizeof(app1Header);
 
-	if(flag)
-	{
-		unsigned char app1Header[10]={0xff, 0xe1, 0x00, 0x08, 0x45, 0x78, 0x69, 0x66, 0x00, 0x00};
-		ExifMemcpy (pInput, app1Header, 10);
-	}
-	else
-	{
-		unsigned char app1Header[10] ={0, 0, 0, 0, 0x45, 0x78, 0x69, 0x66, 0x00, 0x00};
-		ExifMemcpy (pInput, app1Header, 10);
-	}
-	offset += 10;
+		
+	ExifMemcpy (pInput, app1Header, app1HeaderSize);
+	offset += app1HeaderSize;
 
 	offset += __ExifCreate_wo_GPS(pInput + offset, pSetExifInfo,flag);
-	if(offset == 10 ) {
+	if(offset == app1HeaderSize ) {
 		return  0;
 	}
 	
@@ -77,6 +71,11 @@ unsigned int ExifCreator::ExifCreate_wo_GPS(unsigned char* pInput, ExifInfoStruc
 		appLength = offset-2;
 		pInput[2] = appLength>>8;
 		pInput[3] = appLength & 0xff;	
+	}
+	else
+	{
+		//clear lenght field, will be updated by TI OMX jpeg encoder
+		memset(pInput, 0, 4);	//clear 1st 4 byte of app1 header
 	}
 
 	return offset;

@@ -353,13 +353,16 @@ s_fmt_fail:
 
 		return 0;
 	}
-
+#define R3D4_CONVERT  
 	int CameraHal::CapturePicture()
 	{
 		int image_width, image_height, preview_width, preview_height;
         int capture_len;
 		unsigned long base, offset;
-		
+      
+#ifdef R3D4_CONVERT     
+        CColorConvert* pConvert;    //class for image processing
+#endif		
 		struct v4l2_buffer buffer; // for VIDIOC_QUERYBUF and VIDIOC_QBUF
 		struct v4l2_format format;
 		//struct v4l2_buffer cfilledbuffer; // for VIDIOC_DQBUF
@@ -389,32 +392,20 @@ s_fmt_fail:
 		int orientation = getOrientation();
 
 		LOG_FUNCTION_NAME
-        
-        // clear EXIF information
-        memset(pExifBuf, 0, sizeof(pExifBuf));
-
+		
+		                           
 		if (CameraSetFrameRate())
 		{
 			LOGE("Error in setting Camera frame rate\n");
 			return -1;
 		}
-
-		HAL_PRINT("\n\n\n PICTURE NUMBER =%d\n\n\n",++pictureNumber);
-
-		mParameters.getPictureSize(&image_width, &image_height);
+        
+		LOGD("\n\n\n PICTURE NUMBER =%d\n\n\n",++pictureNumber);
+       
+        mParameters.getPictureSize(&image_width, &image_height);
 		mParameters.getPreviewSize(&preview_width, &preview_height);	
-		HAL_PRINT("Picture Size: Width = %d \t Height = %d\n", image_width, image_height);
-		HAL_PRINT("Preview Size: Width = %d \t Height = %d\n", preview_width, preview_height);
-
-#if OPEN_CLOSE_WORKAROUND
-		close(camera_device);
-		camera_device = open(VIDEO_DEVICE, O_RDWR);
-		if (camera_device < 0) 
-		{
-			LOGE ("!!!!!!!!!FATAL Error: Could not open the camera device: %s!!!!!!!!!\n",
-					strerror(errno) );
-		}
-#endif
+		LOGV("mCameraIndex = %d\n", mCameraIndex);
+		LOGD("Picture Size: Width = %d \t Height = %d\n", image_width, image_height);
 
         /* set size & format of the video image */
 		format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -436,7 +427,7 @@ s_fmt_fail:
 		if (capture_len & 0xfff)   
 			capture_len = (capture_len & 0xfffff000) + 0x1000;
 
-		HAL_PRINT("capture: %s mode, pictureFrameSize = 0x%x = %d\n", 
+		LOGV("capture: %s mode, pictureFrameSize = 0x%x = %d\n", 
             (mCamera_Mode == CAMERA_MODE_JPEG)?"jpeg":"yuv", capture_len, capture_len);
 
             
@@ -462,7 +453,7 @@ s_fmt_fail:
 		{
 			mNotifyCb(CAMERA_MSG_SHUTTER, 0, 0, mCallbackCookie);
 		} 
-
+		
 		/* Check if the camera driver can accept 1 buffer */
 		creqbuf.type   = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 		creqbuf.memory = V4L2_MEMORY_USERPTR;
@@ -497,7 +488,7 @@ s_fmt_fail:
 			return -1;
 		}
 
-		HAL_PRINT("De-queue the next avaliable buffer\n");
+		LOGD("De-queue the next avaliable buffer\n");
 
 		/* De-queue the next avaliable buffer */       
         //try to get buffer from camearo for 10 times
@@ -531,15 +522,22 @@ s_fmt_fail:
 		if(mCamera_Mode == CAMERA_MODE_JPEG)
 		{
 			int JPEG_Image_Size = GetJpegImageSize();
-			int thumbNailOffset = GetThumbNailOffset();
-			int yuvOffset = GetYUVOffset();
+			int thumbNailOffset = 0;	//m4mo doesnt store offset ?
+			int yuvOffset =0;			//m4mo doesnt store yuv image ?
+			// int thumbNailOffset = GetThumbNailOffset();
+			// int yuvOffset = GetYUVOffset();
 			thumbnaiDataSize = GetThumbNailDataSize();
 			sp<IMemoryHeap> heap = mPictureBuffer->getMemory(&newoffset, &newsize);
-			uint8_t* pInJPEGDataBUuf = (uint8_t *)heap->base() + newoffset ;
-			uint8_t* pInThumbNailDataBuf = (uint8_t *)heap->base() + thumbNailOffset;
+			uint8_t* pInJPEGDataBUuf = (uint8_t *)heap->base() + newoffset ;			//ptr to jpeg data
+			uint8_t* pInThumbNailDataBuf = (uint8_t *)heap->base() + thumbNailOffset;	//ptr to thmubnail
 			uint8_t* pYUVDataBuf = (uint8_t *)heap->base() + yuvOffset;
 
-			CreateExif(pInThumbNailDataBuf, thumbnaiDataSize, pExifBuf, exifDataSize, 1);
+			// FILE* fOut = NULL;
+			// fOut = fopen("/dump/dump.jpg", "w");
+			// fwrite(pInJPEGDataBUuf, 1, JPEG_Image_Size, fOut);
+			// fclose(fOut);
+			
+			CreateExif(pInThumbNailDataBuf, thumbnaiDataSize, pExifBuf, exifDataSize, EXIF_SET_JPEG_LENGTH);
 
 			//create a new binder object 
 			mFinalPictureHeap = new MemoryHeapBase(exifDataSize+JPEG_Image_Size);
@@ -547,6 +545,7 @@ s_fmt_fail:
 			heap = mFinalPictureBuffer->getMemory(&newoffset, &newsize);
 			uint8_t* pOutFinalJpegDataBuf = (uint8_t *)heap->base();
 
+			
 			//create a new binder obj to send yuv data
 			if(yuvOffset)
 			{
@@ -609,26 +608,30 @@ s_fmt_fail:
                      
               
 			PPM("YUV COLOR ROTATION STARTED\n");
-#define R3D4_CONVERT        
+    
 #ifdef R3D4_CONVERT     
-             // color converter and image processing (flip/rotate)
-             // neon lib doesnt seem to work, jpeg was corrupted?
-             // so use own stuff
-            CColorConvert* pConvert = new CColorConvert(pYuvBuffer, mPreviewWidth, mPreviewHeight, UYV2);
-            
-            pConvert->writeFile(DUMP_PATH "before_rotate.bmp", BMP);      
-            //pConvert->writeFile(DUMP_PATH "before_rotate.uyv", SOURCE);  
-           
-            if(mCameraIndex == VGA_CAMERA )
-                pConvert->rotateImage(ROTATE_270);
-            else
-               pConvert->flipImage(FLIP_VERTICAL);
-            
-            // write rotatet image back to input buffer
-            pConvert->writeFile(DUMP_PATH "after_rotate.bmp", BMP);   
-            pConvert->makeUYV2(NULL, INPLACE);  //INPLACE: no new buffer, write to input buffer   
-            image_width = pConvert->getWidth();
-            image_height = pConvert->geHeight();
+            if(mCameraIndex == VGA_CAMERA)
+            {
+				LOGV("use rotation");
+                 // color converter and image processing (flip/rotate)
+                 // neon lib doesnt seem to work, jpeg was corrupted?
+                 // so use own stuff
+                pConvert = new CColorConvert(pYuvBuffer, image_width, image_height, UYV2);
+                
+                pConvert->writeFile(DUMP_PATH "before_rotate.uyv", SOURCE);  
+                pConvert->writeFile(DUMP_PATH "before_rotate.bmp", BMP);      
+               
+                if(mCameraIndex == VGA_CAMERA )
+                    pConvert->rotateImage(ROTATE_270);
+                // else
+                   // pConvert->flipImage(FLIP_VERTICAL);
+                
+                // write rotatet image back to input buffer
+                pConvert->writeFile(DUMP_PATH "after_rotate.bmp", BMP);   
+                pConvert->makeUYV2(NULL, INPLACE);  //INPLACE: no new buffer, write to input buffer   
+                image_width = pConvert->getWidth();
+                image_height = pConvert->geHeight();
+            }
 #else
 
 #endif            
@@ -654,7 +657,7 @@ s_fmt_fail:
                 int inputSize = image_width * image_height * PIX_YUV422I_BYTES_PER_PIXEL;
 				int jpegSize = image_width * image_height * JPG_BYTES_PER_PIXEL;
                 
-				CreateExif(NULL, 0, pExifBuf, exifDataSize, 0);
+				CreateExif(NULL, 0, pExifBuf, exifDataSize, EXIF_NOTSET_JPEG_LENGTH);
 				HAL_PRINT("VGA EXIF size : %d\n", exifDataSize);
                 
 				mJPEGPictureHeap = new MemoryHeapBase(jpegSize + 256);
@@ -662,7 +665,7 @@ s_fmt_fail:
 
 
       
-				HAL_PRINT("VGA capture : outbuffer = 0x%x, jpegSize = %d, pYuvBuffer = 0x%x, yuv_len = %d, image_width = %d, image_height = %d, quality = %d, mippMode =%d\n", 
+				HAL_PRINT("YUV capture : outbuffer = 0x%x, jpegSize = %d, pYuvBuffer = 0x%x, yuv_len = %d, image_width = %d, image_height = %d, quality = %d, mippMode =%d\n", 
 							outBuffer, jpegSize, pYuvBuffer, capture_len, image_width, image_height, mYcbcrQuality, mippMode); 
 
 				if(jpegEncoder)
@@ -729,30 +732,151 @@ s_fmt_fail:
         
 		delete []pExifBuf;
 		mCaptureFlag = false;
-        
-#if OPEN_CLOSE_WORKAROUND
-			close(camera_device);
-			camera_device = open(VIDEO_DEVICE, O_RDWR);
-			if (camera_device < 0) 
-			{
-				LOGE ("!!!!!!!!!FATAL Error: Could not open the camera device: %s!!!!!!!!!\n", strerror(errno) );
-			}
-#endif        
-        
+                
 		LOG_FUNCTION_NAME_EXIT
 
 		return NO_ERROR;
 
 	}
-
-	//[20091123 exif Ratnesh
-	void CameraHal::CreateExif(unsigned char* pInThumbnailData,int Inthumbsize,unsigned char* pOutExifBuf,int& OutExifSize,int flag)
+	
+	int CameraHal::roundIso(int calIsoValue)
 	{
-		int w =0, h = 0;
-
-		int orientationValue = getOrientation();
-		HAL_PRINT("CreateExif orientationValue = %d \n", orientationValue);				
-		
+		int tempISO;
+		if(calIsoValue < 8.909)
+		{
+			tempISO = 0;
+		}
+		else if(calIsoValue >=8.909 && calIsoValue < 11.22)
+		{
+			tempISO = 10;
+		}
+		else if(calIsoValue >=11.22 && calIsoValue < 14.14)
+		{
+			tempISO = 12;
+		}
+		else if(calIsoValue >=14.14 && calIsoValue < 17.82)
+		{
+			tempISO = 16;
+		}
+		else if(calIsoValue >=17.82 && calIsoValue < 22.45)
+		{
+			tempISO = 20;
+		}
+		else if(calIsoValue >=22.45 && calIsoValue < 28.28)
+		{
+			tempISO = 25;
+		}
+		else if(calIsoValue >=28.28 && calIsoValue < 35.64)
+		{
+			tempISO = 32;
+		}
+		else if(calIsoValue >=35.64 && calIsoValue < 44.90)
+		{
+			tempISO = 40;
+		}
+		else if(calIsoValue >=44.90 && calIsoValue < 56.57)
+		{
+			tempISO = 50;
+		}
+		else if(calIsoValue >=56.57 && calIsoValue < 71.27)
+		{
+			tempISO = 64;
+		}
+		else if(calIsoValue >=71.27 && calIsoValue < 89.09)
+		{
+			tempISO = 80;
+		}
+		else if(calIsoValue >=89.09 && calIsoValue < 112.2)
+		{
+			tempISO = 100;
+		}
+		else if(calIsoValue >=112.2 && calIsoValue < 141.4)
+		{
+			tempISO = 125;
+		}
+		else if(calIsoValue >=141.4 && calIsoValue < 178.2)
+		{
+			tempISO = 160;
+		}
+		else if(calIsoValue >=178.2 && calIsoValue < 224.5)
+		{
+			tempISO = 200;
+		}
+		else if(calIsoValue >=224.5 && calIsoValue < 282.8)
+		{
+			tempISO = 250;
+		}
+		else if(calIsoValue >=282.8 && calIsoValue < 356.4)
+		{
+			tempISO = 320;
+		}
+		else if(calIsoValue >=356.4 && calIsoValue < 449.0)
+		{
+			tempISO = 400;
+		}
+		else if(calIsoValue >=449.0 && calIsoValue < 565.7)
+		{
+			tempISO = 500;
+		}
+		else if(calIsoValue >=565.7 && calIsoValue < 712.7)
+		{
+			tempISO = 640;
+		}
+		else if(calIsoValue >=712.7 && calIsoValue < 890.9)
+		{
+			tempISO = 800;
+		}
+		else if(calIsoValue >=890.9 && calIsoValue < 1122)
+		{
+			tempISO = 1000;
+		}
+		else if(calIsoValue >=1122 && calIsoValue < 1414)
+		{
+			tempISO = 1250;
+		}
+		else if(calIsoValue >=1414 && calIsoValue < 1782)
+		{
+			tempISO = 160;
+		}
+		else if(calIsoValue >=1782 && calIsoValue < 2245)
+		{
+			tempISO = 2000;
+		}
+		else if(calIsoValue >=2245 && calIsoValue < 2828)
+		{
+			tempISO = 2500;
+		}
+		else if(calIsoValue >=2828 && calIsoValue < 3564)
+		{
+			tempISO = 3200;
+		}
+		else if(calIsoValue >=3564 && calIsoValue < 4490)
+		{
+			tempISO = 4000;
+		}
+		else if(calIsoValue >=4490 && calIsoValue < 5657)
+		{
+			tempISO = 5000;
+		}
+		else if(calIsoValue >=5657 && calIsoValue < 7127)
+		{
+			tempISO = 6400;
+		}
+		else
+		{
+			tempISO = 8000;
+		}
+		return tempISO;
+	}
+	
+	//[20091123 exif Ratnesh
+	void CameraHal::CreateExif(unsigned char* pInThumbnailData, int Inthumbsize,
+		unsigned char* pOutExifBuf, int& OutExifSize, int flag)
+	{
+		//                                0   90  180 270 360
+		const int MAIN_ORIENTATION[]  = { 1,  6,  3,  8,  1};
+		const int FRONT_ORIENTATION[] = { 3,  6,  1,  8,  3};
+			
 		ExifCreator* mExifCreator = new ExifCreator();
 		unsigned int ExifSize = 0;
 		ExifInfoStructure ExifInfo;
@@ -760,19 +884,13 @@ s_fmt_fail:
 		unsigned short tempISO = 0;
 		struct v4l2_exif exifobj;
 		
-		// To read values from driver
-		if(mCameraIndex==MAIN_CAMERA)
-		{
-			getExifInfoFromDriver(&exifobj);
-		}
-   
+		int orientationValue = getOrientation();
+		LOGV("CreateExif orientationValue = %d \n", orientationValue);	
+
 		memset(&ExifInfo, NULL, sizeof(ExifInfoStructure));
 
 		strcpy( (char *)&ExifInfo.maker, "SAMSUNG");
-		strcpy( (char *)&ExifInfo.model, "GT-I8320");
-
-		mParameters.getPreviewSize(&w, &h);
-
+		
 		mParameters.getPictureSize((int*)&ExifInfo.imageWidth , (int*)&ExifInfo.imageHeight);
 		mParameters.getPictureSize((int*)&ExifInfo.pixelXDimension, (int*)&ExifInfo.pixelYDimension);
 
@@ -787,27 +905,31 @@ s_fmt_fail:
 			sprintf((char *)&ExifInfo.dateTimeDigitized, "%4d:%02d:%02d %02d:%02d:%02d", t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);						
 			sprintf((char *)&ExifInfo.dateTime, "%4d:%02d:%02d %02d:%02d:%02d", t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec); 					
 		}
-
+				
 		if(mCameraIndex==MAIN_CAMERA)
 		{
+			if(orientationValue<=360)
+				ExifInfo.orientation = MAIN_ORIENTATION[orientationValue/90];
+			else
+				ExifInfo.orientation = 0;
+			
+			getExifInfoFromDriver(&exifobj);
+			strcpy( (char *)&ExifInfo.model, "GT-I8320 M4MO");
 			int cam_ver = GetCamera_version();
-
 			ExifInfo.Camversion[0] = (cam_ver & 0xFF);
 			ExifInfo.Camversion[1] = ((cam_ver >> 8) & 0xFF);
-			ExifInfo.Camversion[2] = ((cam_ver >> 16) & 0xFF);
-			ExifInfo.Camversion[3] = ((cam_ver >> 24) & 0xFF);
-			HAL_PRINT("CreateExif GetCamera_version =[%x][%x][%x][%x]\n", ExifInfo.Camversion[2],ExifInfo.Camversion[3],ExifInfo.Camversion[0],ExifInfo.Camversion[1]);	
-
-			sprintf((char *)&ExifInfo.software, "fw %02d.%02d prm %02d.%02d", ExifInfo.Camversion[2],ExifInfo.Camversion[3],ExifInfo.Camversion[0],ExifInfo.Camversion[1]); 	
-			if(mThumbnailWidth > 0 && mThumbnailHeight > 0)
-			{
-				ExifInfo.hasThumbnail = true;
-				ExifInfo.thumbStream			= pInThumbnailData;
-				ExifInfo.thumbSize				= Inthumbsize;
-				ExifInfo.thumbImageWidth		= mThumbnailWidth;
-				ExifInfo.thumbImageHeight		= mThumbnailHeight;
-			}
-			else
+			//HAL_PRINT("CreateExif GetCamera_version =[%x][%x][%x][%x]\n", ExifInfo.Camversion[2],ExifInfo.Camversion[3],ExifInfo.Camversion[0],ExifInfo.Camversion[1]);	
+			sprintf((char *)&ExifInfo.software, "CM7 CAM-FW:%02X%02X", ExifInfo.Camversion[1], ExifInfo.Camversion[0]); 	
+// TODO: get thumbnail offset of m4mo jpeg data
+			// if(mThumbnailWidth > 0 && mThumbnailHeight > 0)
+			// {
+				// ExifInfo.hasThumbnail = true;
+				// ExifInfo.thumbStream			= pInThumbnailData;
+				// ExifInfo.thumbSize				= Inthumbsize;
+				// ExifInfo.thumbImageWidth		= mThumbnailWidth;
+				// ExifInfo.thumbImageHeight		= mThumbnailHeight;
+			// }
+			// else
 			{
 				ExifInfo.hasThumbnail = false;
 			}
@@ -821,19 +943,18 @@ s_fmt_fail:
 			ExifInfo.aperture.denominator       = 10;
 			ExifInfo.maxAperture.numerator      = 26;
 			ExifInfo.maxAperture.denominator    = 10;
-			ExifInfo.focalLength.numerator      = 3430;
+			ExifInfo.focalLength.numerator      = 4610;
 			ExifInfo.focalLength.denominator    = 1000;
 			//[ 2010 05 01 exif
-			ExifInfo.shutterSpeed.numerator 	= exifobj.TV_Value;
-			ExifInfo.shutterSpeed.denominator   = 100;
-			ExifInfo.exposureTime.numerator     = 1;
-			ExifInfo.exposureTime.denominator   = (unsigned int)pow(2.0, ((double)exifobj.TV_Value/100.0));
+			ExifInfo.shutterSpeed.numerator 	= exifobj.shutter_speed_numerator;
+			ExifInfo.shutterSpeed.denominator   = exifobj.shutter_speed_denominator;
+			ExifInfo.exposureTime.numerator     = exifobj.exposure_time_numerator;
+			ExifInfo.exposureTime.denominator   = exifobj.exposure_time_denominator;
 			//]
-			ExifInfo.brightness.numerator       = 5;
-			ExifInfo.brightness.denominator     = 9;
+			ExifInfo.brightness.numerator       = exifobj.brigtness_numerator;
+			ExifInfo.brightness.denominator     = exifobj.brightness_denominator;
 			ExifInfo.iso                        = 1;
-			ExifInfo.flash                     	= 0;	// default value
-
+			ExifInfo.isoSpeedRating             = roundIso(exifobj.iso);
 			// Flash
 			// bit 0    -whether the flash fired
 			// bit 1,2 -status of returned light
@@ -845,391 +966,36 @@ s_fmt_fail:
 			// off = 1
 			// on = 2
 			// auto = 3
-
-
-			// Todo : Need to implement how HAL can recognize existance of flash
-			//		if( ! isFlashExist )	// pseudo code
-			//			ExifInfo.flash = 32;		// bit 5 - No flash function.
-			//		else
-			{
-				LOGD("createExif - flashmode = %d flash result = %d", mPreviousFlashMode, ExifInfo.flash);
-
-				// bit 0
-				ExifInfo.flash = ExifInfo.flash | exifobj.flash;
-				// bit 3,4
-				if(mPreviousFlashMode == 3)	// Flashmode auto
-					ExifInfo.flash = ExifInfo.flash |24;
-				// bit 6
-				// Todo : Need to implement about red-eye			
-				//			if(mPreviousFlashMode == ??)	// Flashmode red-eye
-				//				ExifInfo.flash = ExifInfo.flash | 64;						
-			}
-
-			HAL_PRINT("Main Orientation = %d\n",orientationValue);
-			switch(orientationValue)
-			{            		
-				case 0:
-					ExifInfo.orientation                = 1 ;
-					break;
-				case 90:
-					ExifInfo.orientation                = 6 ;
-					break;
-				case 180:
-					ExifInfo.orientation                = 3 ;
-					break;
-				case 270:
-					ExifInfo.orientation                = 8 ;
-					break;
-				default:
-					ExifInfo.orientation                = 1 ;
-					break;
-			}
-			//[ 2010 05 01 exif
-			double calIsoValue = 0;
-			calIsoValue = pow(2.0,((double)exifobj.SV_Value/100.0))*3.125;
-			//]
-			if(calIsoValue < 8.909)
-			{
-				tempISO = 0;
-			}
-			else if(calIsoValue >=8.909 && calIsoValue < 11.22)
-			{
-				tempISO = 10;
-			}
-			else if(calIsoValue >=11.22 && calIsoValue < 14.14)
-			{
-				tempISO = 12;
-			}
-			else if(calIsoValue >=14.14 && calIsoValue < 17.82)
-			{
-				tempISO = 16;
-			}
-			else if(calIsoValue >=17.82 && calIsoValue < 22.45)
-			{
-				tempISO = 20;
-			}
-			else if(calIsoValue >=22.45 && calIsoValue < 28.28)
-			{
-				tempISO = 25;
-			}
-			else if(calIsoValue >=28.28 && calIsoValue < 35.64)
-			{
-				tempISO = 32;
-			}
-			else if(calIsoValue >=35.64 && calIsoValue < 44.90)
-			{
-				tempISO = 40;
-			}
-			else if(calIsoValue >=44.90 && calIsoValue < 56.57)
-			{
-				tempISO = 50;
-			}
-			else if(calIsoValue >=56.57 && calIsoValue < 71.27)
-			{
-				tempISO = 64;
-			}
-			else if(calIsoValue >=71.27 && calIsoValue < 89.09)
-			{
-				tempISO = 80;
-			}
-			else if(calIsoValue >=89.09 && calIsoValue < 112.2)
-			{
-				tempISO = 100;
-			}
-			else if(calIsoValue >=112.2 && calIsoValue < 141.4)
-			{
-				tempISO = 125;
-			}
-			else if(calIsoValue >=141.4 && calIsoValue < 178.2)
-			{
-				tempISO = 160;
-			}
-			else if(calIsoValue >=178.2 && calIsoValue < 224.5)
-			{
-				tempISO = 200;
-			}
-			else if(calIsoValue >=224.5 && calIsoValue < 282.8)
-			{
-				tempISO = 250;
-			}
-			else if(calIsoValue >=282.8 && calIsoValue < 356.4)
-			{
-				tempISO = 320;
-			}
-			else if(calIsoValue >=356.4 && calIsoValue < 449.0)
-			{
-				tempISO = 400;
-			}
-			else if(calIsoValue >=449.0 && calIsoValue < 565.7)
-			{
-				tempISO = 500;
-			}
-			else if(calIsoValue >=565.7 && calIsoValue < 712.7)
-			{
-				tempISO = 640;
-			}
-			else if(calIsoValue >=712.7 && calIsoValue < 890.9)
-			{
-				tempISO = 800;
-			}
-			else if(calIsoValue >=890.9 && calIsoValue < 1122)
-			{
-				tempISO = 1000;
-			}
-			else if(calIsoValue >=1122 && calIsoValue < 1414)
-			{
-				tempISO = 1250;
-			}
-			else if(calIsoValue >=1414 && calIsoValue < 1782)
-			{
-				tempISO = 160;
-			}
-			else if(calIsoValue >=1782 && calIsoValue < 2245)
-			{
-				tempISO = 2000;
-			}
-			else if(calIsoValue >=2245 && calIsoValue < 2828)
-			{
-				tempISO = 2500;
-			}
-			else if(calIsoValue >=2828 && calIsoValue < 3564)
-			{
-				tempISO = 3200;
-			}
-			else if(calIsoValue >=3564 && calIsoValue < 4490)
-			{
-				tempISO = 4000;
-			}
-			else if(calIsoValue >=4490 && calIsoValue < 5657)
-			{
-				tempISO = 5000;
-			}
-			else if(calIsoValue >=5657 && calIsoValue < 7127)
-			{
-				tempISO = 6400;
-			}
-			else
-			{
-				tempISO = 8000;
-			}
-
-			if(mPreviousSceneMode <= 1)
-			{
-				ExifInfo.meteringMode               = mPreviousMetering;
-				if(mPreviousWB <= 1)
-				{
-					ExifInfo.whiteBalance               = 0;
-				}
-				else
-				{
-					ExifInfo.whiteBalance               = 1;
-				}
-				ExifInfo.saturation                 = convertToExifLMH(getSaturation(), 2);
-				ExifInfo.sharpness                  = convertToExifLMH(getSharpness(), 2);
-				switch(mPreviousISO)
-				{
-					case 2:
-						ExifInfo.isoSpeedRating             = 50;
-						break;
-					case 3:
-						ExifInfo.isoSpeedRating             = 100;
-						break;
-					case 4:
-						ExifInfo.isoSpeedRating             = 200;
-						break;
-					case 5:
-						ExifInfo.isoSpeedRating             = 400;
-						break;
-					case 6:
-						ExifInfo.isoSpeedRating             = 800;
-						break;
-					default:
-						ExifInfo.isoSpeedRating             = tempISO;
-						break;
-				}                
-
-				switch(getBrightness())
-				{
-					case 0:
-						ExifInfo.exposureBias.numerator = -20;
-						break;
-					case 1:
-						ExifInfo.exposureBias.numerator = -15;
-						break;
-					case 2:
-						ExifInfo.exposureBias.numerator = -10;
-						break;
-					case 3:
-						ExifInfo.exposureBias.numerator =  -5;
-						break;
-					case 4:
-						ExifInfo.exposureBias.numerator =   0;
-						break;
-					case 5:
-						ExifInfo.exposureBias.numerator =   5;
-						break;
-					case 6:
-						ExifInfo.exposureBias.numerator =  10;
-						break;
-					case 7:
-						ExifInfo.exposureBias.numerator =  15;
-						break;
-					case 8:
-						ExifInfo.exposureBias.numerator =  20;
-						break;
-					default:
-						ExifInfo.exposureBias.numerator = 0;
-						break;
-				}
-				ExifInfo.exposureBias.denominator       = 10;
-				ExifInfo.sceneCaptureType               = 0;
-			}
-			else
-			{
-				switch(mPreviousSceneMode)
-				{
-					case 3://sunset
-						ExifInfo.meteringMode               = 2;
-						ExifInfo.whiteBalance               = 1;
-						ExifInfo.saturation                 = 0;
-						ExifInfo.sharpness                  = 0;
-						ExifInfo.isoSpeedRating             = tempISO;
-						ExifInfo.exposureBias.numerator     = 0;
-						ExifInfo.exposureBias.denominator   = 10;
-						ExifInfo.sceneCaptureType           = 4;
-						break;
-					case 4://dawn
-						ExifInfo.meteringMode               = 2;
-						ExifInfo.whiteBalance               = 1;
-						ExifInfo.saturation                 = 0;
-						ExifInfo.sharpness                  = 0;
-						ExifInfo.isoSpeedRating             = tempISO;
-						ExifInfo.exposureBias.numerator     = 0;
-						ExifInfo.exposureBias.denominator   = 10;
-						ExifInfo.sceneCaptureType           = 4;
-						break;
-					case 5://candlelight
-						ExifInfo.meteringMode               = 2;
-						ExifInfo.whiteBalance               = 1;
-						ExifInfo.saturation                 = 0;
-						ExifInfo.sharpness                  = 0;
-						ExifInfo.isoSpeedRating             = tempISO;
-						ExifInfo.exposureBias.numerator     = 0;
-						ExifInfo.exposureBias.denominator   = 10;
-						ExifInfo.sceneCaptureType           = 4;
-						break;
-					case 6://beach & snow
-						ExifInfo.meteringMode               = 2;
-						ExifInfo.whiteBalance               = 0;
-						ExifInfo.saturation                 = 2;
-						ExifInfo.sharpness                  = 0;
-						ExifInfo.isoSpeedRating             = 50;
-						ExifInfo.exposureBias.numerator     = 10;
-						ExifInfo.exposureBias.denominator   = 10;
-						ExifInfo.sceneCaptureType           = 1;
-						break;
-					case 7://againstlight
-						ExifInfo.whiteBalance               = 0;
-						ExifInfo.saturation                 = 0;
-						ExifInfo.sharpness                  = 0;
-						ExifInfo.isoSpeedRating             = tempISO;
-						if(mPreviousFlashMode <= 1)
-						{
-							ExifInfo.meteringMode               = 3;
-						}
-						else
-						{
-							ExifInfo.meteringMode               = 2;
-						}
-						ExifInfo.exposureBias.numerator 	= 0;
-						ExifInfo.exposureBias.denominator   = 10;
-						ExifInfo.sceneCaptureType           = 4;
-						break;
-					case 8://text
-						ExifInfo.meteringMode               = 2;
-						ExifInfo.whiteBalance               = 0;
-						ExifInfo.saturation                 = 0;
-						ExifInfo.sharpness                  = 2;
-						ExifInfo.isoSpeedRating             = tempISO;
-						ExifInfo.exposureBias.numerator     = 0;
-						ExifInfo.exposureBias.denominator   = 10;
-						ExifInfo.sceneCaptureType           = 4;
-						break;
-					case 9://night
-						ExifInfo.meteringMode               = 2;
-						ExifInfo.whiteBalance               = 0;
-						ExifInfo.saturation                 = 0;
-						ExifInfo.sharpness                  = 0;
-						ExifInfo.isoSpeedRating             = tempISO;
-						ExifInfo.exposureBias.numerator     = 0;
-						ExifInfo.exposureBias.denominator   = 10;
-						ExifInfo.sceneCaptureType           = 3;
-						break;	
-					case 10://landscape
-						ExifInfo.meteringMode               = 5;
-						ExifInfo.whiteBalance               = 0;
-						ExifInfo.saturation                 = 2;
-						ExifInfo.sharpness                  = 2;
-						ExifInfo.isoSpeedRating             = tempISO;
-						ExifInfo.exposureBias.numerator     = 0;
-						ExifInfo.exposureBias.denominator   = 10;
-						ExifInfo.sceneCaptureType           = 1;
-						break;
-					case 11://fireworks
-						ExifInfo.meteringMode               = 2;
-						ExifInfo.whiteBalance               = 0;
-						ExifInfo.saturation                 = 0;
-						ExifInfo.sharpness                  = 0;
-						ExifInfo.isoSpeedRating             = 50;
-						ExifInfo.exposureBias.numerator     = 0;
-						ExifInfo.exposureBias.denominator   = 10;
-						ExifInfo.sceneCaptureType           = 4;
-						break;
-					case 12://portrait
-						ExifInfo.meteringMode               = 2;
-						ExifInfo.whiteBalance               = 0;
-						ExifInfo.saturation                 = 0;
-						ExifInfo.sharpness                  = 1;
-						ExifInfo.isoSpeedRating             = tempISO;
-						ExifInfo.exposureBias.numerator     = 0;
-						ExifInfo.exposureBias.denominator   = 10;
-						ExifInfo.sceneCaptureType           = 2;
-						break;
-					case 13://fallcolor
-						ExifInfo.meteringMode               = 2;
-						ExifInfo.whiteBalance               = 0;
-						ExifInfo.saturation                 = 2;
-						ExifInfo.sharpness                  = 0;
-						ExifInfo.isoSpeedRating             = tempISO;
-						ExifInfo.exposureBias.numerator     = 0;
-						ExifInfo.exposureBias.denominator   = 10;
-						ExifInfo.sceneCaptureType           = 4;
-						break;
-					case 14://indoors
-						ExifInfo.meteringMode               = 2;
-						ExifInfo.whiteBalance               = 0;
-						ExifInfo.saturation                 = 2;
-						ExifInfo.sharpness                  = 0;
-						ExifInfo.isoSpeedRating             = 200;
-						ExifInfo.exposureBias.numerator     = 0;
-						ExifInfo.exposureBias.denominator   = 10;
-						ExifInfo.sceneCaptureType           = 4;
-						break;
-					case 15://sports
-						ExifInfo.meteringMode               = 2;
-						ExifInfo.whiteBalance               = 0;
-						ExifInfo.saturation                 = 0;
-						ExifInfo.sharpness                  = 0;
-						ExifInfo.isoSpeedRating             = tempISO;
-						ExifInfo.exposureBias.numerator     = 0;
-						ExifInfo.exposureBias.denominator   = 10;
-						ExifInfo.sceneCaptureType           = 4;
-						break;
-				}
-			}
+			ExifInfo.flash  					= exifobj.flash 
+												| (mPreviousFlashMode == 3)?(3<<4):0;	// default value
+			
+			ExifInfo.whiteBalance               = (mPreviousWB <= 1)?0:1;
+			ExifInfo.meteringMode               = mPreviousMetering;
+			ExifInfo.saturation                 = convertToExifLMH(getSaturation(), 2);
+			ExifInfo.sharpness                  = convertToExifLMH(getSharpness(), 2);  
+			ExifInfo.exposureBias.numerator 	= (getBrightness()-4)*5;
+			ExifInfo.exposureBias.denominator   = 10;
+			ExifInfo.sceneCaptureType           = mPreviousSceneMode;
+		
+			// ExifInfo.meteringMode               = 2;
+			// ExifInfo.whiteBalance               = 1;
+			// ExifInfo.saturation                 = 0;
+			// ExifInfo.sharpness                  = 0;
+			// ExifInfo.isoSpeedRating             = tempISO;
+			// ExifInfo.exposureBias.numerator     = 0;
+			// ExifInfo.exposureBias.denominator   = 10;
+			// ExifInfo.sceneCaptureType           = 4;
 		}
+		
 		else // VGA Camera
-		{
+		{	
+			if(orientationValue<=360)
+				ExifInfo.orientation = FRONT_ORIENTATION[orientationValue/90];
+			else
+				ExifInfo.orientation = 0;
+				
+			strcpy( (char *)&ExifInfo.model, "GT-I8320 S5KA3DFX");
+			sprintf((char *)&ExifInfo.software, "CM7 CAM-FW:%02X%02X", 0, 0); 
 			if(mThumbnailWidth > 0 && mThumbnailHeight > 0) {
 				 //thumb nail data added here 
                 ExifInfo.thumbStream                = pInThumbnailData;
@@ -1257,26 +1023,6 @@ s_fmt_fail:
 			ExifInfo.brightness.denominator     = 9;
 			ExifInfo.iso                        = 1;
 
-			HAL_PRINT("VGA Orientation = %d\n",orientationValue);
-			switch(orientationValue)
-			{
-				case 0:
-					ExifInfo.orientation                = 1;
-					break;
-				case 90:
-					ExifInfo.orientation                = 6;
-					break;
-				case 180:
-					ExifInfo.orientation                = 3;
-					break;
-				case 270:
-					ExifInfo.orientation                = 8;
-					break;
-				default:
-					ExifInfo.orientation                = 1 ;
-					break;
-			}
-
 			ExifInfo.meteringMode               = mPreviousMetering;
 			ExifInfo.whiteBalance               = 0;
 			ExifInfo.saturation                 = 0;
@@ -1285,41 +1031,9 @@ s_fmt_fail:
 			ExifInfo.exposureTime.numerator     = 1;
 			ExifInfo.exposureTime.denominator   = 16;
 			ExifInfo.flash 						= 0;
-			switch(getBrightness())
-			{
-				case 0:
-					ExifInfo.exposureBias.numerator = -20;
-					break;
-				case 1:
-					ExifInfo.exposureBias.numerator = -15;
-					break;
-				case 2:
-					ExifInfo.exposureBias.numerator = -10;
-					break;
-				case 3:
-					ExifInfo.exposureBias.numerator =  -5;
-					break;
-				case 4:
-					ExifInfo.exposureBias.numerator =   0;
-					break;
-				case 5:
-					ExifInfo.exposureBias.numerator =   5;
-					break;
-				case 6:
-					ExifInfo.exposureBias.numerator =  10;
-					break;
-				case 7:
-					ExifInfo.exposureBias.numerator =  15;
-					break;
-				case 8:
-					ExifInfo.exposureBias.numerator =  20;
-					break;
-				default:
-					ExifInfo.exposureBias.numerator = 0;
-					break;
-			}
-			ExifInfo.exposureBias.denominator       = 10;
-			ExifInfo.sceneCaptureType               = 0;
+			ExifInfo.exposureBias.numerator 	= (getBrightness()-4)*5;
+			ExifInfo.exposureBias.denominator   = 10;
+			ExifInfo.sceneCaptureType           = 0;
 		}
 
 		double arg0,arg3;
@@ -1403,7 +1117,8 @@ s_fmt_fail:
 	{
 		int offset = 0;
 
-		if( pInJpegData == NULL || InJpegSize == 0 || pInExifBuf == 0 || InExifSize == 0 || pOutJpegData == NULL )
+//		if( pInJpegData == NULL || InJpegSize == 0 || pInExifBuf == 0 || InExifSize == 0 || pOutJpegData == NULL )
+		if( pInJpegData == NULL || InJpegSize == 0 || pInExifBuf == 0 || pOutJpegData == NULL )
 		{
 			return false;
 		}
