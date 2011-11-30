@@ -98,7 +98,7 @@ PRODUCT_COPY_FILES += \
     device/samsung/nowplus/prebuilt/bin/sysinit:system/bin/sysinit
 
 # system/etc/init.d
-PRODUCT_COPY_FILES += \	
+PRODUCT_COPY_FILES += \
     device/samsung/nowplus/prebuilt/etc/init.d/99complete:system/etc/init.d/99complete \
     device/samsung/nowplus/prebuilt/etc/init.d/05sdcardspeedfix:system/etc/init.d/05sdcardspeedfix \
     device/samsung/nowplus/prebuilt/etc/init.d/10overclock:system/etc/init.d/10overclock
