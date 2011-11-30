@@ -919,7 +919,7 @@ s_fmt_fail:
 			ExifInfo.Camversion[0] = (cam_ver & 0xFF);
 			ExifInfo.Camversion[1] = ((cam_ver >> 8) & 0xFF);
 			//HAL_PRINT("CreateExif GetCamera_version =[%x][%x][%x][%x]\n", ExifInfo.Camversion[2],ExifInfo.Camversion[3],ExifInfo.Camversion[0],ExifInfo.Camversion[1]);	
-			sprintf((char *)&ExifInfo.software, "CM7 CAM-FW:%02X%02X", ExifInfo.Camversion[1], ExifInfo.Camversion[0]); 	
+			sprintf((char *)&ExifInfo.software, "%02X%02X", ExifInfo.Camversion[1], ExifInfo.Camversion[0]); 	
 // TODO: get thumbnail offset of m4mo jpeg data
 			// if(mThumbnailWidth > 0 && mThumbnailHeight > 0)
 			// {
@@ -995,7 +995,7 @@ s_fmt_fail:
 				ExifInfo.orientation = 0;
 				
 			strcpy( (char *)&ExifInfo.model, "GT-I8320 S5KA3DFX");
-			sprintf((char *)&ExifInfo.software, "CM7 CAM-FW:%02X%02X", 0, 0); 
+			sprintf((char *)&ExifInfo.software, "%02X%02X", 0, 0); 
 			if(mThumbnailWidth > 0 && mThumbnailHeight > 0) {
 				 //thumb nail data added here 
                 ExifInfo.thumbStream                = pInThumbnailData;
