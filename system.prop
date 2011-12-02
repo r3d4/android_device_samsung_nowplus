@@ -43,4 +43,4 @@ ro.opengles.version=131072
 #jpeg.libskiahw.decoder.thresh=100000
 
 #show battery charging on bottom LED
-light.battery.show=1
+light.battery.show=0

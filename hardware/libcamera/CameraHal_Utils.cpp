@@ -618,8 +618,8 @@ s_fmt_fail:
                  // so use own stuff
                 pConvert = new CColorConvert(pYuvBuffer, image_width, image_height, UYV2);
                 
-                pConvert->writeFile(DUMP_PATH "before_rotate.uyv", SOURCE);  
-                pConvert->writeFile(DUMP_PATH "before_rotate.bmp", BMP);      
+                //pConvert->writeFile(DUMP_PATH "before_rotate.uyv", SOURCE);  
+                //pConvert->writeFile(DUMP_PATH "before_rotate.bmp", BMP);      
                
                 if(mCameraIndex == VGA_CAMERA )
                     pConvert->rotateImage(ROTATE_270);
@@ -627,7 +627,7 @@ s_fmt_fail:
                    // pConvert->flipImage(FLIP_VERTICAL);
                 
                 // write rotatet image back to input buffer
-                pConvert->writeFile(DUMP_PATH "after_rotate.bmp", BMP);   
+                //pConvert->writeFile(DUMP_PATH "after_rotate.bmp", BMP);   
                 pConvert->makeUYV2(NULL, INPLACE);  //INPLACE: no new buffer, write to input buffer   
                 image_width = pConvert->getWidth();
                 image_height = pConvert->geHeight();

@@ -3,7 +3,7 @@ on init
     export DEFAULT_BASEIMAGE /system/lib/dsp/baseimage.dof
     export QOSDYN_FILE /system/lib/dsp/qosdyn_3430.dll64P
 
-    mkdir /mnt/emmc 0000 system system
+    mkdir /mnt/emmc 771 system system
     symlink /mnt/emmc /emmc
 
     #for storing bt firmware in /system instead of initrd

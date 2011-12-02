@@ -5,10 +5,8 @@ VSEL=60
 RATE=800000
 
 #overclocking from userspace with milestone_overclock
-insmod /system/lib/modules/overclock_nowplus_22.ko omap2_clk_init_cpufreq_table_addr=0xc004f7cc
+insmod /system/lib/modules/overclock_nowplus_22.ko
 
-
-echo 0xc032ae98 >  /proc/overclock/cpufreq_stats_update_addr
 echo $VSEL >  /proc/overclock/max_vsel
 echo $RATE >  /proc/overclock/max_rate
 

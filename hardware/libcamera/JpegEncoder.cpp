@@ -40,7 +40,7 @@
 
 #define DUMP_DIR "/dump"
 
-#define JPEG_ENCODER_DUMP_INPUT_AND_OUTPUT 1
+#define JPEG_ENCODER_DUMP_INPUT_AND_OUTPUT 0
 
 #define OPTIMIZE 0  
                //

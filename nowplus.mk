@@ -33,11 +33,8 @@ PRODUCT_PACKAGES += \
     CMParts \
     DSPManager \
     libcyanogen-dsp \
-    Pacman \
-    CMWallpapers \
     acoustics.default \
     libtiOsLib
-
 
 
 #add external packages
@@ -69,11 +66,7 @@ PRODUCT_PACKAGES += \
     libomap_mm_library_jni \
     tiomxplayer     
 
-    
-    
-    
-    
-    
+
 # SkiaHW
 PRODUCT_PACKAGES += \
         libskiahw
@@ -95,18 +88,20 @@ PRODUCT_COPY_FILES += \
 
 # system/bin
 PRODUCT_COPY_FILES += \
-    device/samsung/nowplus/prebuilt/bin/sysinit:system/bin/sysinit
+    device/samsung/nowplus/prebuilt/bin/sysinit:system/bin/sysinit \
+    device/samsung/nowplus/prebuilt/bin/enable_emmc:system/bin/enable_emmc \
+    device/samsung/nowplus/prebuilt/bin/enable_overclock:system/bin/enable_overclockenable_overclockold
 
 # system/etc/init.d
 PRODUCT_COPY_FILES += \
     device/samsung/nowplus/prebuilt/etc/init.d/99complete:system/etc/init.d/99complete \
-    device/samsung/nowplus/prebuilt/etc/init.d/05sdcardspeedfix:system/etc/init.d/05sdcardspeedfix \
-    device/samsung/nowplus/prebuilt/etc/init.d/10overclock:system/etc/init.d/10overclock
+    device/samsung/nowplus/prebuilt/etc/init.d/10overclock:system/etc/tools/10overclock
 
 # system/etc/
 PRODUCT_COPY_FILES += \
     device/samsung/nowplus/prebuilt/etc/asound.conf:system/etc/asound.conf \
     device/samsung/nowplus/prebuilt/etc/vold.fstab:system/etc/vold.fstab \
+    device/samsung/nowplus/prebuilt/etc/vold.fstab.emmc:system/etc/tools/vold.fstab.emmc \
     device/samsung/nowplus/prebuilt/etc/media_profiles.xml:system/etc/media_profiles.xml \
     device/samsung/nowplus/prebuilt/etc/apns.xml:system/etc/apns-conf.xml \
     device/samsung/nowplus/prebuilt/etc/gps.conf:system/etc/gps.conf \
