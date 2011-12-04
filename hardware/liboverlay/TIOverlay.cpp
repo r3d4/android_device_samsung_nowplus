@@ -18,7 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
  
-//#define LOG_NDEBUG 0
+#define LOG_NDEBUG 0
 #define LOG_TAG "TIOverlay"
 
 #include <hardware/hardware.h>
@@ -35,11 +35,12 @@ extern "C" {
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#include "../include/videodev.h"
-
 #include <cutils/log.h>
 #include <cutils/ashmem.h>
 #include <cutils/atomic.h>
+#include <cutils/properties.h>
+
+#include "../include/videodev.h"
 #include "overlay_common.h"
 #include "TIOverlay.h"
 
@@ -48,13 +49,11 @@ extern "C" {
 
 
 #define MAX_DISPLAY_CNT 1
-#define MAX_MANAGER_CNT 1
+#define MAX_MANAGER_CNT 2
 #define PANEL_NAME_FOR_TV "tv"
 
 
-
 const int KCloneDevice = OVERLAY_ON_PRIMARY;
-
 
 static displayPanelMetaData screenMetaData[MAX_DISPLAY_CNT];
 static displayManagerMetaData managerMetaData[MAX_MANAGER_CNT];
@@ -608,6 +607,17 @@ overlay_t* overlay_control_context_t::overlay_createOverlay(struct overlay_contr
     int overlay_fd;
     int pipelineId = -1;
     int index = 0;
+	int alpha_hack=0;
+	char value[PROPERTY_VALUE_MAX];
+		
+	property_get(PROPERTY_ALPHA_HACK, value, "");
+    if (value[0] == '1') 
+	{
+		LOGV("enable alpha blending hack");
+		alpha_hack = 1;
+	}
+  
+	
     /* Validate the width and height are within a valid range for the
     * video driver.
     * */
@@ -688,12 +698,23 @@ overlay_t* overlay_control_context_t::overlay_createOverlay(struct overlay_contr
         LOGE("Failed defaulting crop window\n");
         goto error1;
     }
+	if(alpha_hack)
+	{	
+		// Request to Enable Local Alpha Blending
+		if ((v4l2_enable_local_alpha(fd, 1))) {
+			LOGE("Failed enabling local alpha \n");
+			goto error1;
+		}
+	}
+	else
+	{
 
-    if (v4l2_overlay_set_colorkey(fd, 1, 0)){
-        LOGE("Failed enabling color key\n");
-        goto error1;
-    }
-
+		 //  Request to Enable Color Key
+		if ((v4l2_enable_local_alpha(fd, 0))) {
+			LOGE("Failed enabling local alpha \n");
+			goto error1;
+		}	
+	}	
     if (v4l2_overlay_req_buf(fd, &num, 0, 0, EMEMORY_MMAP)) {
         LOGE("Failed requesting buffers\n");
         goto error1;
@@ -708,7 +729,7 @@ overlay_t* overlay_control_context_t::overlay_createOverlay(struct overlay_contr
     overlayobj->mData.cropX = 0;
     overlayobj->mData.cropY = 0;
     overlayobj->mData.cropW = w;
-    overlayobj->mData.cropH = h;
+    overlayobj->mData.cropH = h;	
 #if 0
     overlayobj->mData.s3d_active = isS3D;
     overlayobj->mData.s3d_mode = OVERLAY_S3D_MODE_ON;
@@ -719,10 +740,14 @@ overlay_t* overlay_control_context_t::overlay_createOverlay(struct overlay_contr
     self->mOmapOverlays[overlayid] = overlayobj;
 
     LOGD("overlay_createOverlay: OUT");
-
-    return overlayobj;
+   	
+    self->mNumOverlays++;
 
     LOG_FUNCTION_NAME_EXIT;
+	
+    return overlayobj;
+
+
 error1:
     close(fd);
     self->destroy_shared_overlayobj(overlayobj);
@@ -820,11 +845,41 @@ void overlay_control_context_t::overlay_destroyOverlay(struct overlay_control_de
     int fd = overlayobj->getctrl_videofd();
     int linkfd = overlayobj->getctrl_linkvideofd();
     int index = overlayobj->getIndex();
-
+    int num_ovls_with_alpha = 0;
+	overlay_ctrl_t   *data = overlayobj->data();
+	
+	
     overlay_data_context_t::disable_streaming(overlayobj, false);
 
     LOGI("Destroying overlay/fd=%d/obj=%08lx", fd, (unsigned long)overlay);
 
+
+    if (data->colorkey < 0) {
+        /*  Lets Iterate among all created overlays to identify how many of them
+            have local alpha blending enabled.
+            IF we have any overlays using/requiring local alpha, apart from the
+            current to-be destroyed overlay, DO NOT switch it off.
+        */
+        for (int i=0; i < MAX_NUM_OVERLAYS; i++) {
+            if (self->mOmapOverlays[i] != NULL) {
+                overlay_object *ovlobj = static_cast<overlay_object *>(self->mOmapOverlays[i]);
+                overlay_ctrl_t *ovldata = ovlobj->data();
+
+                if(ovldata->colorkey < 0)
+                    num_ovls_with_alpha++;
+            }
+        }
+
+        if (num_ovls_with_alpha == 1) {
+            LOGE("%s : Lets Switch off Alpha Blending.\n", __func__ );
+            if (v4l2_overlay_set_local_alpha(fd,0))
+                LOGE("Failed disabling local alpha \n");
+        }
+    }
+
+	
+	
+	
     if (close(fd)) {
         LOGI( "Error closing overly fd/%d\n", errno);
     }
@@ -840,6 +895,8 @@ void overlay_control_context_t::overlay_destroyOverlay(struct overlay_control_de
     //NOTE : needs no protection, as the calls are already serialized at Surfaceflinger level
     self->mOmapOverlays[index] = NULL;
 
+	self->mNumOverlays--;
+	
     LOGD("overlay_destroyOverlay:OUT");
     LOG_FUNCTION_NAME_EXIT;
 }
@@ -976,7 +1033,8 @@ int overlay_control_context_t::overlay_setParameter(struct overlay_control_devic
         LOGE("Null Arguments / Overlay not initd");
         return -1;
     }
-
+	LOGV("overlay_setParameter: param=%d, value=%d", param, value);
+	
     overlay_object *overlayobj = static_cast<overlay_object *>(overlay);
     overlay_ctrl_t *stage = static_cast<overlay_object *>(overlay)->staging();
     int rc = 0;
@@ -1004,10 +1062,12 @@ int overlay_control_context_t::overlay_setParameter(struct overlay_control_devic
             break;
         }
         break;
-#if 0
+
     case OVERLAY_COLOR_KEY:
+		LOGV("set OVERLAY_COLOR_KEY");
         stage->colorkey = value;
         break;
+#if 0
     case OVERLAY_PLANE_ALPHA:
         //adjust the alpha to the HW limit
         stage->alpha = MIN(value, 0xFF);
@@ -1066,7 +1126,7 @@ int overlay_control_context_t::overlay_commit(struct overlay_control_device_t *d
     overlay_data_t eCropData;
     int index = 0;
     char clrkey[16];
-
+	
     /** NOTE: In order to support HDMI without app explicitly requesting for
     * the screen ID, this is the alternative path check for the overlay manager.
     * (here assumption is : overlay manager is set from command line
@@ -1086,6 +1146,7 @@ int overlay_control_context_t::overlay_commit(struct overlay_control_device_t *d
     if (data->posX == stage->posX && data->posY == stage->posY &&
         data->posW == stage->posW && data->posH == stage->posH &&
         data->rotation == stage->rotation &&
+		data->colorkey == stage->colorkey &&
         data->panel == stage->panel) {
         LOGV("Nothing to do!\n");
         goto end;
@@ -1109,6 +1170,7 @@ int overlay_control_context_t::overlay_commit(struct overlay_control_device_t *d
     data->posH       = stage->posH;
     data->rotation   = stage->rotation;
     data->alpha      = stage->alpha;
+	data->colorkey   = stage->colorkey;
 
 
     // Adjust the coordinate system to match the V4L change
@@ -1247,8 +1309,11 @@ int overlay_control_context_t::overlay_commit(struct overlay_control_device_t *d
     LOGI("Adjusted Position/X%d/Y%d/W%d/H%d\n", finalWindow.posX, finalWindow.posY, finalWindow.posW, finalWindow.posH);
     LOGI("Rotation/%d\n", data->rotation );
     LOGI("alpha/%d\n", data->alpha );
+	LOGI("colorkey/%d\n", data->colorkey );
     LOGI("zorder/%d\n", data->zorder );
-
+	
+	
+	
     if ((ret = v4l2_overlay_get_crop(fd, &eCropData.cropX, &eCropData.cropY, &eCropData.cropW, &eCropData.cropH))) {
         LOGE("commit:Get crop value Failed!/%d\n", ret);
         goto end;
@@ -1260,6 +1325,22 @@ int overlay_control_context_t::overlay_commit(struct overlay_control_device_t *d
         goto end;
     }
 
+	// if(data->colorkey < 0) 
+	// {	
+		// if ((ret=v4l2_enable_local_alpha(fd, 1))) {
+			// LOGE("Failed enabling local alpha \n");
+			// goto end;
+		// }
+    // } 
+	// else 
+	// {
+		// if ((ret=v4l2_enable_local_alpha(fd, 0))) {
+			// LOGE("Failed disabling local alpha \n");
+			// goto end;
+		// }
+    // }
+	
+		
     if ((ret = v4l2_overlay_set_rotation(fd, data->rotation, 0))) {
         LOGE("Set Rotation Failed!/%d\n", ret);
         goto end;
@@ -1279,16 +1360,10 @@ int overlay_control_context_t::overlay_commit(struct overlay_control_device_t *d
         goto end;
     }
 
+	
     //unlock the mutex here as the subsequent operations are file operations
     //otherwise it may hang
     pthread_mutex_unlock(&overlayobj->lock);
-
-
-    data->colorkey = stage->colorkey;
-    if ((ret = v4l2_overlay_set_colorkey(fd, 1, 0x00))) {
-        LOGE("Failed enabling color key\n");
-        goto end;
-    }
 
 
     if (overlayobj->getctrl_linkvideofd() > 0) {
@@ -1483,6 +1558,21 @@ int overlay_control_context_t::CommitLinkDevice(struct overlay_control_device_t 
         LOGE("Set Position Failed!/%d\n", ret);
         goto end;
     }
+	
+	 // if (data->colorkey < 0) 
+	 // {
+        // if ((ret = v4l2_overlay_set_colorkey(linkfd, 0, 0x00))) {
+            // LOGE("Failed enabling color key\n");
+            // goto end;
+        // }
+    // }
+    // else 
+	// {
+        // if ((ret = v4l2_overlay_set_colorkey(linkfd, 1, data->colorkey))) {
+            // LOGE("Failed enabling color key\n");
+            // goto end;
+        // }
+    // }
 
 end:
     pthread_mutex_unlock(&overlayobj->lock);
@@ -1695,17 +1785,40 @@ int overlay_data_context_t::overlay_resizeInput(struct overlay_data_device_t *de
         LOGE("Failed crop window\n");
         goto end;
     }
-    if ((ret = v4l2_overlay_set_colorkey(fd,1, 0x00))) {
-        LOGE("Failed enabling color key\n");
-        goto end;
-    }
 
     if ((ret = v4l2_overlay_set_position(fd, _x,  _y, _w, _h))) {
         LOGD(" Could not set the position when creating overlay \n");
         goto end;
     }
-
+	
+    if ((ret = v4l2_overlay_req_buf(fd, (uint32_t *)(&ctx->omap_overlay->num_buffers), ctx->omap_overlay->cacheable_buffers, ctx->omap_overlay->maintain_coherency, EMEMORY_MMAP))) {
+        LOGE("Error creating buffers");
+        goto end;
+    }
+	
     if (link_fd > 0) {
+	        
+		if ((ret = v4l2_overlay_init(link_fd, w, h, ctx->omap_overlay->format))) {
+            LOGE("Error resizing link overlay");
+            goto end;
+        }
+
+        if ((ret = v4l2_overlay_set_rotation(link_fd, degree, 0))) {
+            LOGE("Failed set rotation for link\n");
+            goto end;
+        }
+
+        if ((ret = v4l2_overlay_set_crop(link_fd, ctx->omap_overlay->mData.cropX, ctx->omap_overlay->mData.cropY, \
+                                 ctx->omap_overlay->mData.cropW, ctx->omap_overlay->mData.cropH))) {
+            LOGE("Failed set crop window for link\n");
+            goto end;
+        }
+
+        if ((ret = v4l2_overlay_set_position(link_fd, 0,  0, LCD_WIDTH, LCD_HEIGHT))) {
+            LOGE(" Could not set the position for link \n");
+            goto end;
+        }
+	
         if ((ret = v4l2_overlay_req_buf(linkfd, (uint32_t *)(&ctx->omap_overlay->num_buffers),
             ctx->omap_overlay->cacheable_buffers, ctx->omap_overlay->maintain_coherency, EMEMORY_USRPTR))) {
             LOGE("Error creating linked buffers2");
@@ -1713,10 +1826,6 @@ int overlay_data_context_t::overlay_resizeInput(struct overlay_data_device_t *de
         }
     }
 
-    if ((ret = v4l2_overlay_req_buf(fd, (uint32_t *)(&ctx->omap_overlay->num_buffers), ctx->omap_overlay->cacheable_buffers, ctx->omap_overlay->maintain_coherency, EMEMORY_MMAP))) {
-        LOGE("Error creating buffers");
-        goto end;
-    }
 
     for (int i = 0; i < ctx->omap_overlay->num_buffers; i++) {
         v4l2_overlay_map_buf(fd, i, &ctx->omap_overlay->buffers[i], &ctx->omap_overlay->buffers_len[i]);
@@ -2003,7 +2112,7 @@ int overlay_data_context_t::overlay_dequeueBuffer(struct overlay_data_device_t *
     LOGV("qd_buf_count = %d", ctx->omap_overlay->qd_buf_count);
 
     pthread_mutex_unlock(&ctx->omap_overlay->lock);
-
+	
     return ( rc );
 }
 
@@ -2069,6 +2178,7 @@ int overlay_data_context_t::overlay_queueBuffer(struct overlay_data_device_t *de
     }
     
     rc = ctx->omap_overlay->qd_buf_count;
+	
 EXIT:
     pthread_mutex_unlock(&ctx->omap_overlay->lock);
     return ( rc );
@@ -2233,6 +2343,7 @@ static int overlay_device_open(const struct hw_module_t* module,
         {
             dev->mOmapOverlays[i] = NULL;
         }
+		dev->mNumOverlays = 0;
         TheOverlayControlDevice = dev;
 
         status =  InitDisplayManagerMetaData();

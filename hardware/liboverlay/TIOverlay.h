@@ -28,6 +28,7 @@
 #include "v4l2_utils.h"
 
 //#define OMAP_COMPAT //cmpatibility mode
+#define PROPERTY_ALPHA_HACK	"overlay.transparency.enable"
 
 #define OVERLAY_DATA_MARKER  (0x68759746) // OVRLYSHM on phone keypad
 #define COMPAT_MODE
@@ -243,7 +244,8 @@ public:
      * with the assumption that only one of this class is created.
      */
     overlay_object* mOmapOverlays[MAX_NUM_OVERLAYS];
-
+	
+	int mNumOverlays;
 };
 
 // A separate instance is created per overlay data side user

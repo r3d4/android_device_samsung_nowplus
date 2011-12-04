@@ -66,5 +66,8 @@
 #define MAX_OVERLAY_RESOLUTION (1280 * 720)
 #endif
 
+    /* color key control support */
+#define   OVERLAY_COLOR_KEY   6
+
 #endif  // OVERLAY_COMMON_H_
 

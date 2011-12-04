@@ -44,3 +44,6 @@ ro.opengles.version=131072
 
 #show battery charging on bottom LED
 light.battery.show=0
+
+#enable overlay transparency hack, disable it if there are video playback problems
+overlay.transparency.enable=1

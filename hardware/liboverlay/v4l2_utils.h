@@ -66,6 +66,7 @@ int v4l2_overlay_get_rotation(int fd, int* degree, int step);
 int v4l2_overlay_set_colorkey(int fd, int enable, int colorkey);
 int v4l2_overlay_set_global_alpha(int fd, int enable, int alpha);
 int v4l2_overlay_set_local_alpha(int fd, int enable);
+int v4l2_enable_local_alpha(int fd, int enable);
 
 int32_t Util_Memcpy_2Dto1D(void* pSrc2D, uint32_t nHeight2D, uint32_t nWidth2D, uint32_t nStride2D);
 int v4l2_overlay_getId(int fd, int* id);
@@ -83,9 +84,6 @@ enum {
   V4L2_OVERLAY_PLANE_VIDEO2,
 };
 
-/* this constant should be insync with that defined in kernel v4l2 header
-*/
-#define V4L2_CID_TI_DISPC_OVERLAY 0x08000000
 
 /*S3D private definitions, should be in sync with S3D V4L2 kernel header*/
 #define VIDIOC_PRIVATE_S3D_S_OFFS \

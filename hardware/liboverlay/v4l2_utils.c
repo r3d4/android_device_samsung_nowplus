@@ -20,13 +20,12 @@
 
 //#define OVERLAY_DEBUG 1
 #define LOG_TAG "Overlay-V4L2"
-//#define LOG_NDEBUG 0
+#define LOG_NDEBUG 0
 
 #include <fcntl.h>
 #include <errno.h>
 #include <cutils/log.h>
 #include <hardware/overlay.h>
-#include "../include/videodev.h"
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <stdlib.h>
@@ -434,6 +433,39 @@ int v4l2_overlay_get_rotation(int fd, int* degree, int step)
     return ret;
 }
 
+int v4l2_enable_local_alpha(int fd, int enable)
+{
+	if(enable)
+	{
+		// Request to Enable Local Alpha Blending
+		if ((v4l2_overlay_set_colorkey(fd, 0, 0x00))) {
+			LOGE("Failed enabling color key\n");
+			goto fail;
+		}
+
+		if (( v4l2_overlay_set_local_alpha(fd,1))) {
+			LOGE("Failed enabling local alpha \n");
+			goto fail;
+		}
+	}
+	else
+	{
+		if ((v4l2_overlay_set_local_alpha(fd,0))) {
+			LOGE("Failed disabling local alpha \n");
+			goto fail;
+		}
+
+		if ((v4l2_overlay_set_colorkey(fd, 1, 0x00))) {
+			LOGE("Failed enabling color key\n");
+			goto fail;
+		}
+	}
+
+	return 0;
+fail:
+	return 1;
+}
+
 
 int v4l2_overlay_set_colorkey(int fd, int enable, int colorkey)
 {
@@ -442,7 +474,7 @@ int v4l2_overlay_set_colorkey(int fd, int enable, int colorkey)
     int ret;
     struct v4l2_framebuffer fbuf;
     struct v4l2_format fmt;
-
+LOGV("v4l2_overlay_set_colorkey: enable=%d, colorkey=%d", enable, colorkey);
     memset(&fbuf, 0, sizeof(fbuf));
     ret = v4l2_overlay_ioctl(fd, VIDIOC_G_FBUF, &fbuf, "get transparency enables");
 
@@ -484,7 +516,7 @@ int v4l2_overlay_set_global_alpha(int fd, int enable, int alpha)
     int ret;
     struct v4l2_framebuffer fbuf;
     struct v4l2_format fmt;
-
+LOGV("v4l2_overlay_set_global_alpha: enable=%d, alpha=%d", enable, alpha);
     memset(&fbuf, 0, sizeof(fbuf));
     ret = v4l2_overlay_ioctl(fd, VIDIOC_G_FBUF, &fbuf, "get transparency enables");
 
@@ -522,7 +554,7 @@ int v4l2_overlay_set_local_alpha(int fd, int enable)
 {
     int ret;
     struct v4l2_framebuffer fbuf;
-
+LOGV("v4l2_overlay_set_local_alpha: enable=%d", enable);
     ret = v4l2_overlay_ioctl(fd, VIDIOC_G_FBUF, &fbuf,
                              "get transparency enables");
 
