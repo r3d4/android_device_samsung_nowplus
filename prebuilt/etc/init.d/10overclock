@@ -5,7 +5,7 @@ VSEL=60
 RATE=800000
 
 #overclocking from userspace with milestone_overclock
-insmod /system/lib/modules/overclock_nowplus_22.ko
+insmod /system/lib/modules/overclock.ko
 
 echo $VSEL >  /proc/overclock/max_vsel
 echo $RATE >  /proc/overclock/max_rate

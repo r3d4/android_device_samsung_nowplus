@@ -45,9 +45,6 @@ PRODUCT_PACKAGES += \
 # Addition of LOCAL_MODULE_TAGS requires us to specify
 # libraries needed for a particular device
 PRODUCT_PACKAGES += \
-	01_Vendor_ti_omx.cfg \
-	libVendor_ti_omx \
-	libVendor_ti_omx_config_parser \
 	libOMX_Core \
 	libLCML \
 	libOMX.TI.Video.Decoder \
@@ -136,7 +133,7 @@ PRODUCT_COPY_FILES += \
     device/samsung/nowplus/prebuilt/modules/Si4709_driver.ko:system/lib/modules/Si4709_driver.ko \
     device/samsung/nowplus/prebuilt/modules/vibrator.ko:system/lib/modules/vibrator.ko \
     device/samsung/nowplus/prebuilt/modules/vt_sensor.ko:system/lib/modules/vt_sensor.ko \
-    device/samsung/nowplus/prebuilt/modules/overclock_nowplus_22.ko:system/lib/modules/overclock_nowplus_22.ko
+    device/samsung/nowplus/prebuilt/modules/overclock.ko:system/lib/modules/overclock.ko
 
 
 # system/media/

@@ -20,7 +20,7 @@
 
 //#define OVERLAY_DEBUG 1
 #define LOG_TAG "Overlay-V4L2"
-#define LOG_NDEBUG 0
+//#define LOG_NDEBUG 0
 
 #include <fcntl.h>
 #include <errno.h>
