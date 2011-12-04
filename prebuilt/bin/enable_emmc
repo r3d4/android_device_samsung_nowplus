@@ -1,0 +1,5 @@
+#!/system/bin/sh
+
+cp /system/etc/tools/vold.fstab.emmc /system/etc/vold.fstab
+sync
+echo "emmc enabled, please reboot system"

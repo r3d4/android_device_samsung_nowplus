@@ -1,0 +1,7 @@
+#!/system/bin/sh
+SYSTEM_RW=/mnt/sdcard/system_rw
+
+mkdir $SYSTEM_RW
+mount -t unionfs -o dirs=/system=ro:$SYSTEM_RW=rw unionfs /system
+
+echo "UnfionFS mounted"

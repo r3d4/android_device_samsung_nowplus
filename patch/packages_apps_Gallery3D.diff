@@ -1,0 +1,12 @@
+diff --git a/AndroidManifest.xml b/AndroidManifest.xml
+index 889ae41..0cf682e 100644
+--- a/AndroidManifest.xml
++++ b/AndroidManifest.xml
+@@ -94,6 +94,7 @@
+         </activity>
+         <activity android:name="com.cooliris.media.MovieView"
+             android:label="@string/movie_view_label"
++			android:screenOrientation="landscape"
+             android:configChanges="orientation|keyboardHidden"
+             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+             <intent-filter>

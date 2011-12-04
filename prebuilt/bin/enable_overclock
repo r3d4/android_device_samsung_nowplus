@@ -1,0 +1,6 @@
+#!/system/bin/sh
+
+cp /system/etc/tools/10overclock /system/etc/init.d/
+chmod 755 /system/etc/init.d/10overclock
+sync
+echo "overclocking enabled, please reboot system"

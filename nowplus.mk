@@ -94,8 +94,13 @@ PRODUCT_COPY_FILES += \
 
 # system/etc/init.d
 PRODUCT_COPY_FILES += \
+    device/samsung/nowplus/prebuilt/etc/init.d/01sysctl:system/etc/init.d/01sysctl \
     device/samsung/nowplus/prebuilt/etc/init.d/99complete:system/etc/init.d/99complete \
     device/samsung/nowplus/prebuilt/etc/init.d/10overclock:system/etc/tools/10overclock
+
+# sysctl config
+PRODUCT_COPY_FILES += \
+    device/samsung/nowplus/prebuilt/etc/sysctl.conf:system/etc/sysctl.conf
 
 # system/etc/
 PRODUCT_COPY_FILES += \
