@@ -24,12 +24,16 @@
  *
  */
 #undef LOG_TAG
+#define LOG_NDEBUG 0
 #define LOG_TAG "CameraHal"
+
 
 #include "CameraHal.h"
 #include <cutils/properties.h>
 
 #define MOD //r3d4: remove unneeded stuf fro m4mo support
+
+#define DBG LOGV("%s - line %d", __func__, __LINE__);
 
 //CAM_MEM
 #define USE_MEMCOPY_FOR_VIDEO_FRAME 0
@@ -312,9 +316,7 @@ namespace android {
 		mRecorded = false;  	//Android HAL
 		mAutoFocusRunning = false;   
 		iOutStandingBuffersWithEncoder = 0;
-#ifdef OMAP_ENHANCEMENT	  
 		jpegEncoder = NULL;
-#endif
 #ifdef FOCUS_RECT
 		focus_rect_set = 0;
 #endif
@@ -542,7 +544,9 @@ namespace android {
 			p.set(p.KEY_JPEG_THUMBNAIL_HEIGHT, "120");
 			p.set(p.KEY_JPEG_THUMBNAIL_QUALITY, "100"); 
 		}
-
+		//set the video frame format needed by video capture framework
+		p.set(CameraParameters::KEY_VIDEO_FRAME_FORMAT, CameraParameters::PIXEL_FORMAT_YUV422I);
+	
 		p.set(p.KEY_SUPPORTED_PICTURE_FORMATS,"jpeg");
 		p.set(p.KEY_SUPPORTED_PREVIEW_FORMATS,"yuv420sp");
 		p.set(p.KEY_SUPPORTED_WHITE_BALANCE,"auto,daylight,cloudy-daylight,incandescent,fluorescent");
@@ -626,9 +630,7 @@ namespace android {
 							LOGE("getscene fail\n");
 						}
                      
-#ifdef OMAP_ENHANCEMENT	 
 						mNotifyCb(CAMERA_MSG_ASD,vc.value,0,mCallbackCookie);
-#endif
 
 						frameCount = 0;
 					}
@@ -1582,7 +1584,7 @@ fail_reqbufs:
 		debugShowFPS();
 #endif  //#if CHECK_FRAMERATE
 
-		if(true == mRecordEnabled && iOutStandingBuffersWithEncoder < 3)//dont send more than 4.
+		if(true == mRecordEnabled && iOutStandingBuffersWithEncoder < ENCODE_BUFFER_FRAMES)//dont send more than 4.
 		{
 			if(mCounterSkipFrame == 0)
 			{
@@ -1619,24 +1621,34 @@ fail_reqbufs:
 						}
 #ifdef OMAP_ENHANCEMENT	 		
 						mDataCbTimestamp(mCurrentTime,CAMERA_MSG_VIDEO_FRAME,mVideoBuffer_422[mBufferCount_422],mCallbackCookie,0,0);
-						HAL_PRINT("VTMode MainCam Video callback done!\n");
+#else
+						mDataCbTimestamp(mCurrentTime,CAMERA_MSG_VIDEO_FRAME, mVideoBuffer_422[mBufferCount_422], mCallbackCookie);
 #endif
+						HAL_PRINT("VTMode MainCam Video callback done!\n");
+
 					}
 					else
 					{
 						memcpy((void*)mVideoBuffer_422[mBufferCount_422]->pointer(), (void*)mCfilledbuffer.m.userptr, 176*144*2);
 #ifdef OMAP_ENHANCEMENT	 
 						mDataCbTimestamp(mCurrentTime,CAMERA_MSG_VIDEO_FRAME,mVideoBuffer_422[mBufferCount_422],mCallbackCookie,0,0);
-						HAL_PRINT("VTMode VGACam Video callback done!\n");
+#else
+						mDataCbTimestamp(mCurrentTime, CAMERA_MSG_VIDEO_FRAME, mVideoBuffer_422[mBufferCount_422], mCallbackCookie);
 #endif
+						HAL_PRINT("VTMode VGACam Video callback done!\n");
+
 					}
 				}
 				else
 				{
 #ifdef OMAP_ENHANCEMENT	 
 					mDataCbTimestamp(mCurrentTime,CAMERA_MSG_VIDEO_FRAME,mVideoBuffer[(int)mCfilledbuffer.index],mCallbackCookie,0,0);
-					HAL_PRINT("Normal Video callback done!\n");
+#else
+					mDataCbTimestamp(mCurrentTime,CAMERA_MSG_VIDEO_FRAME,mVideoBuffer[(int)mCfilledbuffer.index],mCallbackCookie);
+
 #endif
+					HAL_PRINT("Normal Video callback done!\n");
+
 				}
 			}
 
@@ -1648,7 +1660,7 @@ fail_reqbufs:
 		{
 			queueBufferCheck = true;
 
-			if(true == mRecordEnabled && iOutStandingBuffersWithEncoder == 3) //if opencore has 3 buffers
+			if(true == mRecordEnabled && iOutStandingBuffersWithEncoder == ENCODE_BUFFER_FRAMES) //if opencore has 3 buffers
 			{
 				iConsecutiveVideoFrameDropCount++;
 				if(iConsecutiveVideoFrameDropCount % 30 == 0) //alert every 1sec if opencore is not encoding
@@ -1841,7 +1853,6 @@ fail_reqbufs:
 		mParameters.getPictureSize(&image_width, &image_height);
 		LOGD("ICaptureCreate: Picture Size %d x %d\n", image_width, image_height);
 
-#ifdef OMAP_ENHANCEMENT	 
 #ifdef HARDWARE_OMX
 
 		mippMode=0;
@@ -1855,7 +1866,6 @@ fail_reqbufs:
 #endif //of jpeg_decoder
 #endif //of JPEG
 #endif //of HARDWARE_OMX
-#endif //of OMAP_ENHANCEMENT
 
 		LOG_FUNCTION_NAME_EXIT
 		return res;
@@ -1864,7 +1874,6 @@ fail_jpeg_buffer:
 fail_yuv_buffer:
 fail_init:
 
-#ifdef OMAP_ENHANCEMENT
 #ifdef HARDWARE_OMX
 #if JPEG
 		delete jpegEncoder;
@@ -1873,7 +1882,6 @@ fail_init:
 #endif //jpeg_decoder
 #endif //JPEG    
 #endif //HARDWARE_OMX 
-#endif //OMAP_ENHANCEMENT  
 
 fail_icapture:
 exit:
@@ -1884,7 +1892,6 @@ exit:
 	int CameraHal::ICaptureDestroy(void)
 	{
 		int err;
-#ifdef OMAP_ENHANCEMENT	
 #ifdef HARDWARE_OMX
 #if JPEG
 		if( jpegEncoder )
@@ -1895,7 +1902,6 @@ exit:
 #endif //jpeg_decoder
 #endif //JPEG
 #endif //HARDWARE_OMX
-#endif //OMAP_ENHANCEMENT
 
 		return 0;
 	}
@@ -2020,7 +2026,7 @@ exit:
 		int count = 0; /* For get a AF polling cnt */
 		
 		LOG_FUNCTION_NAME
-
+#if 0
 		setAEAWBLockUnlock(0,0);
 		
 		struct v4l2_control vc;
@@ -2081,6 +2087,11 @@ exit:
 			}
 			HAL_PRINT("Auto Focus Result : %d \n (0 : Time out 1 : Success, 2: Fail)", vc.value);
 		}
+#else
+		if (mMsgEnabled & CAMERA_MSG_FOCUS)
+			mNotifyCb(CAMERA_MSG_FOCUS, CAMERA_AF_SUCCESS, 0, mCallbackCookie);
+		
+#endif
 		mAutoFocusRunning = false;
 
 		LOG_FUNCTION_NAME_EXIT
@@ -2183,7 +2194,7 @@ exit:
 
 		mVideoBufferCount =  mOverlay->getBufferCount();
 
-		if(mMsgEnabled & CAMERA_MSG_VIDEO_FRAME)
+		//if(mMsgEnabled & CAMERA_MSG_VIDEO_FRAME)
 		{
 			HAL_PRINT("Clear the old memory \n");
 			mVideoHeap.clear();
@@ -2294,12 +2305,15 @@ exit:
 
 	bool CameraHal::recordingEnabled()
 	{
+DBG
 		return (mRecordEnabled);
 	}
 
 	void CameraHal::releaseRecordingFrame(const sp<IMemory>& mem)
 	{
 		int index;
+
+DBG
 
 		mRecordingLock.lock();
 

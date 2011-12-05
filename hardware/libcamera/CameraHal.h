@@ -83,6 +83,8 @@ extern "C" {
 #define RESIZER             1
 #define JPEG                1
 
+#define ENCODE_BUFFER_FRAMES	5	// was 3
+
 //#define MAIN_CAM_CAPTURE_YUV    // use YUV,OMX jpeg encoder instead of camera ISP
 
 #define OMAP_SCALE			0	// RealCAM Preview & Capture landscpae view option for GB
@@ -90,14 +92,11 @@ extern "C" {
 #define CLEAR(x) memset (&(x), 0, sizeof (x))
 
 
-#ifdef OMAP_ENHANCEMENT
-
 #ifdef HARDWARE_OMX
 #include "JpegEncoder.h"
 #include "JpegDecoder.h"
 #endif
 
-#endif
 
 #define FOCUS_RECT          		0
 /* colours in focus rectangle */
@@ -591,16 +590,12 @@ namespace android {
 			int mPreviousISO;
 			int mPreviewWidth;
 			int mPreviewHeight;
-
-
-#ifdef OMAP_ENHANCEMENT	  
 #ifdef HARDWARE_OMX
 			JpegEncoder*    jpegEncoder;
 #ifdef jpeg_decoder
 			JpegDecoder*    jpegDecoder;
 #endif    
 #endif    
-#endif
 			int file_index;
 			int cmd;
 			int quality;

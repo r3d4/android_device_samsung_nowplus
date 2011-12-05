@@ -46,7 +46,7 @@ LOCAL_C_INCLUDES += \
 #   hardware/ti/omx/system/src/openmax_il/resource_manager_proxy/inc \
 #    hardware/ti/omx/system/src/openmax_il/resource_manager/resource_activity_monitor/inc
 
-LOCAL_CFLAGS += -O0 -g3 -fpic -fstrict-aliasing -DIPP_LINUX -D___ANDROID___ -DHARDWARE_OMX -DOMAP_ENHANCEMENT
+LOCAL_CFLAGS += -O0 -g3 -fpic -fstrict-aliasing -DIPP_LINUX -D___ANDROID___ -DHARDWARE_OMX
 
 LOCAL_SHARED_LIBRARIES += \
     libbridge \
@@ -57,7 +57,7 @@ LOCAL_SHARED_LIBRARIES += \
 
 endif
 
-ifdef OMAP_ENHANCEMENT	
+
 ifdef FW3A
 
 LOCAL_C_INCLUDES += \
@@ -79,7 +79,7 @@ LOCAL_SHARED_LIBRARIES += \
 LOCAL_CFLAGS += -O0 -g3 -DIPP_LINUX -D___ANDROID___ -DFW3A -DICAP -DIMAGE_PROCESSING_PIPELINE #_MMS -DCAMERA_ALGO
 
 endif
-endif
+
 
 LOCAL_PRELINK_MODULE := false
 
