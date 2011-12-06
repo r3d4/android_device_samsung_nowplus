@@ -81,8 +81,8 @@
     <CamcorderProfiles cameraId="0">
 
         <EncoderProfile quality="high" fileFormat="mp4" duration="60">
-            <Video codec="h263"
-                   bitRate="10000000"
+            <Video codec="m4v"
+                   bitRate="8000000"
                    width="640"
                    height="480"
                    frameRate="30" />
@@ -117,8 +117,8 @@
     <CamcorderProfiles cameraId="1">
 
         <EncoderProfile quality="high" fileFormat="mp4" duration="60">
-            <Video codec="h263"
-                   bitRate="1000000"
+            <Video codec="m4v"
+                   bitRate="8000000"
                    width="640"
                    height="480"
                    frameRate="30" />

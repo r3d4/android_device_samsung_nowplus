@@ -76,6 +76,7 @@ WIFI_FIRMWARE_LOADER        := "wlan_loader"
 
 #egl
 BOARD_USE_YUV422I_DEFAULT_COLORFORMAT := true
+BOARD_USE_UYVY_CAPTURE_COLORFORMAT := true
 #BOARD_EGL_CFG := device/samsung/nowplus/egl.cfg
 # Workaround for eglconfig error
 BOARD_NO_RGBX_8888 := true

@@ -2026,7 +2026,7 @@ exit:
 		int count = 0; /* For get a AF polling cnt */
 		
 		LOG_FUNCTION_NAME
-#if 0
+#if 1
 		setAEAWBLockUnlock(0,0);
 		
 		struct v4l2_control vc;

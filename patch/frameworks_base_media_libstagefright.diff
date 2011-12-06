@@ -1,0 +1,28 @@
+diff --git a/media/libstagefright/Android.mk b/media/libstagefright/Android.mk
+index e1ef766..c611e18 100644
+--- a/media/libstagefright/Android.mk
++++ b/media/libstagefright/Android.mk
+@@ -139,6 +139,10 @@ ifeq ($(BOARD_USE_YUV422I_DEFAULT_COLORFORMAT),true)
+ 	LOCAL_CFLAGS += -DUSE_YUV422I_DEFAULT_COLORFORMAT
+ endif
+ 
++ifeq ($(BOARD_USE_UYVY_CAPTURE_COLORFORMAT),true)
++	LOCAL_CFLAGS += -DUSE_COLOR_UYVY
++endif
++
+ ifeq ($(BOARD_CAMERA_USE_GETBUFFERINFO),true)
+         LOCAL_CFLAGS += -DUSE_GETBUFFERINFO
+         LOCAL_C_INCLUDES += $(TOP)/hardware/qcom/media/mm-core/omxcore/inc
+diff --git a/media/libstagefright/CameraSource.cpp b/media/libstagefright/CameraSource.cpp
+index 25c12fc..66ac115 100644
+--- a/media/libstagefright/CameraSource.cpp
++++ b/media/libstagefright/CameraSource.cpp
+@@ -111,7 +111,7 @@ static int32_t getColorFormat(const char* colorFormat) {
+     }
+ 
+     if (!strcmp(colorFormat, CameraParameters::PIXEL_FORMAT_YUV422I)) {
+-#if defined(TARGET_OMAP3) && defined(OMAP_ENHANCEMENT)
++#if (defined(TARGET_OMAP3) && defined(OMAP_ENHANCEMENT)) || defined(USE_COLOR_UYVY)
+         return OMX_COLOR_FormatCbYCrY;
+ #else
+         return OMX_COLOR_FormatYCbYCr;
