@@ -56,7 +56,8 @@ BUILD_WITH_ALSA_UTILS := true
 ALSA_DEFAULT_SAMPLE_RATE := 44100
 
 #gps, atm only dummy
-#BOARD_GPS_LIBRARIES := "libsecgps.so"
+#BOARD_GPS_LIBRARIES := libsecgps libsecril-client
+#libgps
 #BOARD_USES_GPSSHIM := true
 
 # Wifi
