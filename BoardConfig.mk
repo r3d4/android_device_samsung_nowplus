@@ -55,10 +55,12 @@ BOARD_USES_ALSA_AUDIO := true
 BUILD_WITH_ALSA_UTILS := true
 ALSA_DEFAULT_SAMPLE_RATE := 44100
 
-#gps, atm only dummy
-#BOARD_GPS_LIBRARIES := libsecgps libsecril-client
-#libgps
-#BOARD_USES_GPSSHIM := true
+#gps
+BOARD_GPS_LIBRARIES := libsecgps libsecril-client
+BOARD_USES_GPSSHIM := true
+
+# use samsung libril to get gps
+TARGET_PROVIDES_LIBRIL := true
 
 # Wifi
 USES_TI_WL1271 := true
@@ -130,4 +132,4 @@ ENABLE_JSC_JIT := true
 BOARD_USE_USB_MASS_STORAGE_SWITCH := true
 BOARD_VOLD_EMMC_SHARES_DEV_MAJOR := true
 
-#WITH_DEXPREOPT := true 
+WITH_DEXPREOPT := true

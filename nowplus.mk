@@ -63,17 +63,30 @@ PRODUCT_PACKAGES += \
     libomap_mm_library_jni \
     tiomxplayer     
 
+PRODUCT_PACKAGES += \
+    libomap_mm_library_jni
 
 # SkiaHW
 PRODUCT_PACKAGES += \
         libskiahw
-		
+# samsung ril, gps
+PRODUCT_PACKAGES += \
+    libsecgps.so \
+    libsec-ril.so \
+    libsecril-client.so
+
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.com.android.dateformat=MM-dd-yyyy \
     ro.com.android.dataroaming=true \
     ro.url.legal=http://www.google.com/intl/%s/mobile/android/basic/phone-legal.html \
     ro.url.legal.android_privacy=http://www.google.com/intl/%s/mobile/android/basic/privacy.html
-   
+
+# enable Google-specific location features,
+# like NetworkLocationProvider and LocationCollector
+PRODUCT_PROPERTY_OVERRIDES += \
+    ro.com.google.locationfeatures=1 \
+    ro.com.google.networklocation=1
+
 PRODUCT_COPY_FILES +=  \
     vendor/cyanogen/prebuilt/hdpi/media/bootanimation.zip:system/media/bootanimation.zip
    
@@ -118,29 +131,11 @@ PRODUCT_COPY_FILES += \
     device/samsung/nowplus/prebuilt/etc/wifi/tiwlan.ini:system/etc/wifi/tiwlan.ini
 
 
-# kernel modules
-PRODUCT_COPY_FILES += \
-    device/samsung/nowplus/prebuilt/modules/rfs.ko:system/lib/modules/rfs.ko \
-    device/samsung/nowplus/prebuilt/modules/camera.ko:system/lib/modules/camera.ko \
-    device/samsung/nowplus/prebuilt/modules/camera_pmic.ko:system/lib/modules/camera_pmic.ko \
-    device/samsung/nowplus/prebuilt/modules/dpram.ko:system/lib/modules/dpram.ko \
-    device/samsung/nowplus/prebuilt/modules/kxsd9.ko:system/lib/modules/kxsd9.ko \
-    device/samsung/nowplus/prebuilt/modules/main_sensor.ko:system/lib/modules/main_sensor.ko \
-    device/samsung/nowplus/prebuilt/modules/multipdp.ko:system/lib/modules/multipdp.ko \
-    device/samsung/nowplus/prebuilt/modules/param.ko:system/lib/modules/param.ko \
-    device/samsung/nowplus/prebuilt/modules/pl_sensor.ko:system/lib/modules/pl_sensor.ko \
-    device/samsung/nowplus/prebuilt/modules/rfs.ko:system/lib/modules/rfs.ko \
-    device/samsung/nowplus/prebuilt/modules/Si4709_driver.ko:system/lib/modules/Si4709_driver.ko \
-    device/samsung/nowplus/prebuilt/modules/vibrator.ko:system/lib/modules/vibrator.ko \
-    device/samsung/nowplus/prebuilt/modules/vt_sensor.ko:system/lib/modules/vt_sensor.ko \
-    device/samsung/nowplus/prebuilt/modules/overclock.ko:system/lib/modules/overclock.ko
-
-
 # system/media/
 #PRODUCT_COPY_FILES += \
 #    device/samsung/nowplus/prebuilt/media/bootanimation.zip:system/media/bootanimation.zip
-	
-	
+
+
 # permissions/ Install the features available on this device.
 PRODUCT_COPY_FILES += \
     frameworks/base/data/etc/platform.xml:system/etc/permissions/platform.xml \
@@ -153,8 +148,9 @@ PRODUCT_COPY_FILES += \
     frameworks/base/data/etc/android.hardware.touchscreen.multitouch.distinct.xml:system/etc/permissions/android.hardware.touchscreen.multitouch.distinct.xml \
     frameworks/base/data/etc/android.hardware.sensor.proximity.xml:system/etc/permissions/android.hardware.sensor.proximity.xml \
     frameworks/base/data/etc/android.hardware.sensor.light.xml:system/etc/permissions/android.hardware.sensor.light.xml \
-    frameworks/base/data/etc/android.hardware.usb.accessory.xml:system/etc/permissions/android.hardware.usb.accessory.xml
-  
+    frameworks/base/data/etc/android.hardware.usb.accessory.xml:system/etc/permissions/android.hardware.usb.accessory.xml \
+    frameworks/base/data/etc/android.hardware.location.gps.xml:system/etc/permissions/android.hardware.location.gps.xml
+
 
 # Prebuilt kl keymaps
 PRODUCT_COPY_FILES += \
@@ -163,14 +159,15 @@ PRODUCT_COPY_FILES += \
     
 # kernel modules
 PRODUCT_COPY_FILES += \
-	$(call find-copy-subdir-files,*,device/samsung/nowplus/prebuilt/modules,system/lib/modules)
-    
+    $(call find-copy-subdir-files,*,device/samsung/nowplus/prebuilt/modules,system/lib/modules)
+
 # Generated kcm keymaps
 PRODUCT_PACKAGES += \
         TWL4030_Keypad.kcm\
         gpio-keys.kcm
 # Pick up audio package
 #include frameworks/base/data/sounds/AudioPackage2.mk
+
 
 #PRODUCT_LOCALES := hdpi en_GB de_DE fr_FR es_ES
 CUSTOM_LOCALES += hdpi
