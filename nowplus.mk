@@ -63,8 +63,7 @@ PRODUCT_PACKAGES += \
     libomap_mm_library_jni \
     tiomxplayer     
 
-PRODUCT_PACKAGES += \
-    libomap_mm_library_jni
+FRAMEWORKS_BASE_SUBDIRS += omapmmlib
 
 # SkiaHW
 PRODUCT_PACKAGES += \
