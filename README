@@ -1,6 +1,7 @@
 CyanogenMod7 for Samsung Nowplus (GT-I8320)
 
 
+
 Download:
 =========
 
@@ -12,9 +13,16 @@ repo sync
 Build:
 ======
 
-. build/envsetup.sh 
+. build/envsetup.sh
 
 lunch nowplus-eng
-mka bacon
+make -j4
 
 (&pray it will build)
+
+
+======
+
+more info on wiki page:
+
+https://github.com/r3d4/android_device_samsung_nowplus/wiki
