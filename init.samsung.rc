@@ -32,6 +32,7 @@ on init
     write /sys/block/mmcblk0/bdi/read_ahead_kb 1024
     write /sys/block/mmcblk1/bdi/read_ahead_kb 1024
 
+#    setprop rilcorrect.enable 1
 on fs
 
 # load camera modules
@@ -173,6 +174,14 @@ service hciattach /system/bin/hciattach /dev/ttyS1 texas 3000000
     group bluetooth net_bt_admin misc
     disabled
     oneshot
+
+#service rilcorrect /system/xbin/bash /loadmod.sh
+#	user root
+#	disabled
+#	oneshot
+#on property:rilcorrect.enable=1
+#on property:sys.boot_completed=1
+#	start rilcorrect
 
 #service DR-daemon /system/bin/drexe
 #    user rootfs

@@ -99,7 +99,8 @@ PRODUCT_COPY_FILES += \
 PRODUCT_COPY_FILES += \
     device/samsung/nowplus/prebuilt/bin/sysinit:system/bin/sysinit \
     device/samsung/nowplus/prebuilt/bin/enable_emmc:system/bin/enable_emmc \
-    device/samsung/nowplus/prebuilt/bin/enable_overclock:system/bin/enable_overclock
+    device/samsung/nowplus/prebuilt/bin/enable_overclock:system/bin/enable_overclock \
+    device/samsung/nowplus/prebuilt/bin/ipctool:system/bin/ipctool
 
 # system/etc/init.d
 PRODUCT_COPY_FILES += \
@@ -117,7 +118,7 @@ PRODUCT_COPY_FILES += \
     device/samsung/nowplus/prebuilt/etc/vold.fstab:system/etc/vold.fstab \
     device/samsung/nowplus/prebuilt/etc/vold.fstab.emmc:system/etc/tools/vold.fstab.emmc \
     device/samsung/nowplus/prebuilt/etc/media_profiles.xml:system/etc/media_profiles.xml \
-    device/samsung/nowplus/prebuilt/etc/apns.xml:system/etc/apns-conf.xml \
+    device/samsung/nowplus/prebuilt/etc/apns-conf.xml:system/etc/apns-conf.xml \
     device/samsung/nowplus/prebuilt/etc/gps.conf:system/etc/gps.conf \
     device/samsung/nowplus/prebuilt/etc/init.samsung.sh:system/etc/init.samsung.sh
 
@@ -155,10 +156,18 @@ PRODUCT_COPY_FILES += \
 PRODUCT_COPY_FILES += \
     device/samsung/nowplus/TWL4030_Keypad.kl:system/usr/keylayout/TWL4030_Keypad.kl \
     device/samsung/nowplus/gpio-keys.kl:system/usr/keylayout/gpio-keys.kl
+   
+# 3G
+PRODUCT_COPY_FILES += \
+    device/samsung/nowplus/prebuilt/efs/param.bin:efs/param.bin \
+    device/samsung/nowplus/prebuilt/csc/contents.db:system/csc/contents.db \
+    device/samsung/nowplus/prebuilt/csc/customer.xml:system/csc/customer.xml \
+    device/samsung/nowplus/prebuilt/csc/isnew_csc.txt:system/csc/isnew_csc.txt \
+    device/samsung/nowplus/prebuilt/csc/others.xml:system/csc/others.xml
     
 # kernel modules
 PRODUCT_COPY_FILES += \
-    $(call find-copy-subdir-files,*,device/samsung/nowplus/prebuilt/modules,system/lib/modules)
+    $(call find-copy-subdir-files,*,device/samsung/nowplus/prebuilt/efs,system/lib/modules)
 
 # Generated kcm keymaps
 PRODUCT_PACKAGES += \

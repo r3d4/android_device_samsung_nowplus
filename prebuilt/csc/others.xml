@@ -1,0 +1,10 @@
+<?xml  version="1.0" encoding="UTF-8" ?>
+<CustomerData>
+  <System>
+  	<accelerometer_rotation>1</accelerometer_rotation>
+  </System>
+  <MMS>
+	<vibrate>off</vibrate>
+	<enable_notifications>on</enable_notifications>
+  </MMS>
+</CustomerData>
