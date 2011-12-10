@@ -72,7 +72,8 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     libsecgps.so \
     libsec-ril.so \
-    libsecril-client.so
+    libsecril-client.so \
+    efsd
 
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.com.android.dateformat=MM-dd-yyyy \
