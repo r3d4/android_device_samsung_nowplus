@@ -34,7 +34,8 @@ PRODUCT_PACKAGES += \
     DSPManager \
     libcyanogen-dsp \
     acoustics.default \
-    libtiOsLib
+    libtiOsLib \
+    hostap
 
 
 #add external packages
@@ -72,8 +73,7 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     libsecgps.so \
     libsec-ril.so \
-    libsecril-client.so \
-    efsd
+    libsecril-client.so
 
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.com.android.dateformat=MM-dd-yyyy \

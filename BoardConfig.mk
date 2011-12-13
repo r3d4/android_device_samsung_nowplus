@@ -68,13 +68,15 @@ BOARD_WPA_SUPPLICANT_DRIVER := CUSTOM
 BOARD_WLAN_DEVICE           := wl1271
 BOARD_SOFTAP_DEVICE 		:= wl1271
 WPA_SUPPLICANT_VERSION      := VER_0_6_X
+#WPA_SUPPL_APPROX_USE_RSSI   := true
 WIFI_DRIVER_MODULE_PATH     := "/system/etc/wifi/tiwlan_drv.ko"
 WIFI_DRIVER_MODULE_NAME     := "tiwlan_drv"
 #WIFI_DRIVER_FW_STA_PATH     := "/system/etc/wifi/fw_wlan1271.bin"
 WIFI_FIRMWARE_LOADER        := "wlan_loader"
+AP_CONFIG_DRIVER_WILINK     := true
 #PRODUCT_WIRELESS_TOOLS      := true
 
-#AP_CONFIG_DRIVER_WILINK := true
+
 #WIFI_DRIVER_FW_AP_PATH := "/system/etc/wifi/fw_tiwlan_ap.bin"
 
 #egl

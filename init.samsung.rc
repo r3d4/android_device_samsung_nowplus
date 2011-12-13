@@ -106,7 +106,6 @@ on boot
     chmod 0770 /system/etc/wifi
     chown wifi wifi /system/etc/wifi/wpa_supplicant.conf
     chmod 0660 /system/etc/wifi/wpa_supplicant.conf
-    mkdir /data/misc/wifi/sockets 0770 wifi wifi
 
 
     chown system system /sys/class/timed_output/vibrator/enable
@@ -126,7 +125,12 @@ service pvr /system/bin/sgx/rc.pvr start
 service wlan_init /system/bin/wlaninit
     oneshot
 
-#load wlan firmware
+#load wlan ap mode kernel driver
+#service wlap_init /system/bin/wlapinit
+#    oneshot
+
+
+# TI WLAN related services and configuration
 service wlan_loader /system/bin/wlan_loader \
          -f /system/etc/wifi/firmware.bin \
          -i /system/etc/wifi/tiwlan.ini \
@@ -134,28 +138,30 @@ service wlan_loader /system/bin/wlan_loader \
          disabled
          oneshot
 
-#init wpa supplicant
 service wpa_supplicant /system/bin/wpa_supplicant -Dtiwlan0 -itiwlan0 -c/data/misc/wifi/wpa_supplicant.conf
          socket wpa_tiwlan0 dgram 660 wifi wifi
          disabled
          oneshot
 
-#init dhcpd
+service wlan_ap_loader /system/bin/tiap_loader \
+        -f /system/etc/wifi/softap/firmware_ap.bin \
+        -i /system/etc/wifi/softap/tiwlan_ap.ini \
+        -e /system/etc/wifi/nvs_map.bin
+        disabled
+        oneshot
+
+service hostapd /system/bin/hostap -B -P /data/misc/wifi/hostapd_pid.pid -dd /data/misc/wifi/hostapd.conf
+        disabled
+        oneshot
+
 service dhcpcd_tiwlan0 /system/bin/dhcpcd -ABKL -d tiwlan0
          disabled
          oneshot
-
-# TI WLAN Soft AP related services and configuration
-service wlan_ap_loader /system/bin/tiap_loader \
-        -f /system/etc/wifi/softap/firmware_ap.bin \
-        -i /system/etc/wifi/softap/tiwlan_ap.ini
+         
+service iprenew_tiwlan0 /system/bin/dhcpcd -n
         disabled
         oneshot
-
-service hostapd /system/bin/hostap -dd /data/misc/wifi/hostapd.conf
-        disabled
-        oneshot
-
+    
 # OMAP specific services start here
 
 # load DSP firmware

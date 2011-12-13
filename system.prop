@@ -6,6 +6,24 @@ rild.libpath=/system/lib/libsec-ril.so
 #rild.libpath=/system/lib/libreference-ril.so 
 rild.libargs=-d /dev/ttyS0
 
+# Network settings + 3G/EDGE Hacks
+ro.ril.hep=1
+ro.ril.hsxpa=2
+ro.ril.enable.dtm=1
+ro.ril.gprsclass=12
+ro.ril.enable.a52=1
+ro.ril.enable.a53=1
+ro.ril.hsdpa.category=8
+ro.ril.hsupa.category=6
+ro.ril.enable.3g.prefix=1
+ro.ril.oem.nosim.ecclist=911,112,999,000,08,118,120,122,110,119,995,113,115,1530,1522 \
+ro.ril.emc.mode=2
+ro.com.android.dataroaming=false
+
+ro.telephony.call_ring.multiple=false
+ro.telephony.default_network=0
+mobiledata.interfaces=pdp0,wlan0,gprs,ppp0
+
 ro.config.sync=yes
 ro.sf.lcd_density=240
 
