@@ -125,11 +125,6 @@ service pvr /system/bin/sgx/rc.pvr start
 service wlan_init /system/bin/wlaninit
     oneshot
 
-#load wlan ap mode kernel driver
-#service wlap_init /system/bin/wlapinit
-#    oneshot
-
-
 # TI WLAN related services and configuration
 service wlan_loader /system/bin/wlan_loader \
          -f /system/etc/wifi/firmware.bin \
@@ -157,11 +152,11 @@ service hostapd /system/bin/hostap -B -P /data/misc/wifi/hostapd_pid.pid -dd /da
 service dhcpcd_tiwlan0 /system/bin/dhcpcd -ABKL -d tiwlan0
          disabled
          oneshot
-         
+
 service iprenew_tiwlan0 /system/bin/dhcpcd -n
         disabled
         oneshot
-    
+
 # OMAP specific services start here
 
 # load DSP firmware
