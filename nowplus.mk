@@ -35,7 +35,9 @@ PRODUCT_PACKAGES += \
     libcyanogen-dsp \
     acoustics.default \
     libtiOsLib \
-    hostap
+    radiooptions \
+    hostap \
+    gps.nowplus
 
 
 #add external packages
@@ -100,7 +102,8 @@ PRODUCT_COPY_FILES += \
 PRODUCT_COPY_FILES += \
     device/samsung/nowplus/prebuilt/bin/sysinit:system/bin/sysinit \
     device/samsung/nowplus/prebuilt/bin/enable_emmc:system/bin/enable_emmc \
-    device/samsung/nowplus/prebuilt/bin/enable_overclock:system/bin/enable_overclock
+    device/samsung/nowplus/prebuilt/bin/enable_overclock:system/bin/enable_overclock \
+    device/samsung/nowplus/prebuilt/bin/ipctool:system/xbin/ipctool
 
 # system/etc/init.d
 PRODUCT_COPY_FILES += \
