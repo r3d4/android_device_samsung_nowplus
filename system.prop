@@ -1,8 +1,8 @@
 #
 # system.prop for generic sdk 
 #
-
-rild.libpath=/system/lib/libsec-ril.so
+rild.libpath=/system/lib/libh1-ril.so
+#rild.libpath=/system/lib/libsec-ril.so
 #rild.libpath=/system/lib/libreference-ril.so 
 rild.libargs=-d /dev/ttyS0
 
@@ -23,6 +23,10 @@ ro.com.android.dataroaming=false
 ro.telephony.call_ring.multiple=false
 ro.telephony.default_network=0
 mobiledata.interfaces=pdp0,wlan0,gprs,ppp0
+
+#enable fixes in libh1-ril
+ro.ril.enable.3gfix=1
+ro.ril.enable.smsfix=1
 
 ro.config.sync=yes
 ro.sf.lcd_density=240

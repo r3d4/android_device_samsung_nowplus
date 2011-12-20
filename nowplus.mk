@@ -37,7 +37,8 @@ PRODUCT_PACKAGES += \
     libtiOsLib \
     radiooptions \
     hostap \
-    gps.nowplus
+    gps.nowplus \
+    libh1-ril
 
 
 #add external packages
