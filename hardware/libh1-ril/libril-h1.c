@@ -28,7 +28,7 @@
 #include <errno.h>
 #include <telephony/ril.h>
 
-#define LOG_NDEBUG 0
+//#define LOG_NDEBUG 0
 #define LOG_TAG "H1RIL"
 
 #include <utils/Log.h>
@@ -105,8 +105,8 @@ const RIL_RadioFunctions *RIL_Init(const struct RIL_Env *env, int argc, char **a
     if(property_get("ro.ril.enable.smsfix", value, ""))
         gSmsFixEnable = value[0]-'0';
 
-    LOGV("3G Fix %s", g3GFixEnable?"enabled":"disabled");
-    LOGV("SMS Fix %s", gSmsFixEnable?"enabled":"disabled");
+    LOGD("3G Fix %s", g3GFixEnable?"enabled":"disabled");
+    LOGD("SMS Fix %s", gSmsFixEnable?"enabled":"disabled");
 
     RIL_RadioFunctions *h1RilFuncs = &s_callbacks;
 
@@ -118,7 +118,8 @@ const RIL_RadioFunctions *RIL_Init(const struct RIL_Env *env, int argc, char **a
     rilInit = (const RIL_RadioFunctions *(*)(const struct RIL_Env *, int, char **))dlsym(dlHandle, "RIL_Init");
     if (rilInit == NULL) {
         LOGE("RIL_Init not defined or exported in %s\n", LIBSEC_RIL_PATH);
-        goto err1;
+        dlclose(dlHandle);
+        goto err;
     }
 
     secRilEnv = env;
@@ -127,7 +128,8 @@ const RIL_RadioFunctions *RIL_Init(const struct RIL_Env *env, int argc, char **a
     //secRilFuncs = rilInit(env, argc, argv);
     if(secRilFuncs == NULL) {
         LOGE("get no ril functions !%s\n", LIBSEC_RIL_PATH);
-        goto err1;
+        dlclose(dlHandle);
+        goto err;
     }
 
     h1RilFuncs->version = secRilFuncs->version;
@@ -137,8 +139,6 @@ const RIL_RadioFunctions *RIL_Init(const struct RIL_Env *env, int argc, char **a
     LOGV("    secRilEnv= 0x%0x, h1RilEnv= 0x%x\n",
         (int)secRilEnv, (int)h1RilEnv);
 
-err1:
-    dlclose(dlHandle);
 err:
     //return secRilFuncs;
     return h1RilFuncs; //return wrapped ril functions

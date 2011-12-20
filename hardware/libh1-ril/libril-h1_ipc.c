@@ -28,7 +28,7 @@
 #include <errno.h>
 #include <telephony/ril.h>
 
-#define LOG_NDEBUG 0
+//#define LOG_NDEBUG 0
 #define LOG_TAG "H1RIL"
 
 #include <utils/Log.h>
