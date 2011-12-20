@@ -1,0 +1,16 @@
+#!/system/bin/sh
+# call a userinit.sh script if it's present on the sdcard
+USERINIT_DIR=/data/local
+if [ -e $USERINIT_DIR/userinit.sh ];
+then
+    echo "--- Executing userinit.sh";
+    /system/xbin/chmod +x $USERINIT_DIR/userinit.sh;
+    /system/bin/sh $USERINIT_DIR/userinit.sh;
+    setprop cm.userinit.active 1;
+fi;
+
+if [ -d $USERINIT_DIR/userinit.d ];
+then
+    /system/xbin/busybox run-parts $USERINIT_DIR/userinit.d;
+    setprop cm.userinit.active 1;
+fi;
