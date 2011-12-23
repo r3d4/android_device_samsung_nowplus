@@ -111,6 +111,7 @@ PRODUCT_COPY_FILES += \
     device/samsung/nowplus/prebuilt/etc/init.d/99complete:system/etc/init.d/99complete \
     device/samsung/nowplus/prebuilt/etc/init.d/01sysctl:system/etc/init.d/01sysctl \
     device/samsung/nowplus/prebuilt/etc/init.d/05sdcardspeedfix:system/etc/init.d/05sdcardspeedfix \
+    device/samsung/nowplus/prebuilt/etc/init.d/06makesu:system/etc/init.d/06makesu \
     device/samsung/nowplus/prebuilt/etc/init.d/20userinit:system/etc/init.d/20userinit \
     device/samsung/nowplus/prebuilt/etc/init.d/10overclock:system/etc/tools/10overclock
 
