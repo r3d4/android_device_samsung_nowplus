@@ -1,0 +1,5 @@
+#!/system/bin/sh
+#
+chmod 4755 /system/xbin/su
+
+echo "Set suid to /system/xbin/su"
