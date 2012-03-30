@@ -104,7 +104,8 @@ PRODUCT_COPY_FILES += \
     device/samsung/nowplus/prebuilt/bin/sysinit:system/bin/sysinit \
     device/samsung/nowplus/prebuilt/bin/enable_emmc:system/bin/enable_emmc \
     device/samsung/nowplus/prebuilt/bin/enable_overclock:system/bin/enable_overclock \
-    device/samsung/nowplus/prebuilt/bin/ipctool:system/xbin/ipctool
+    device/samsung/nowplus/prebuilt/bin/ipctool:system/xbin/ipctool \
+    device/samsung/nowplus/prebuilt/bin/flash_eraseall:system/xbin/flash_eraseall
 
 # system/etc/init.d
 PRODUCT_COPY_FILES += \

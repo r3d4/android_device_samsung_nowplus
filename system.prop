@@ -41,6 +41,7 @@ keyguard.no_require_sim=1
 dalvik.vm.heapsize=24m
 dalvik.vm.dexopt-flags=m=y
 dalvik.vm.execution-mode=int:jit
+dalvik.vm.dexopt-data-only=1
 
 android.keylayout.gpio-keys = /system/usr/keylayout/gpio-keys.kl
 android.keychar.gpio-keys = /system/usr/keychars/gpio-keys.kcm
