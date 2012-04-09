@@ -166,7 +166,7 @@ service baseimage /system/bin/cexec.out /system/lib/dsp/baseimage.dof
     oneshot
 
 # init bluetooth device, upload firmware
-service hciattach /system/bin/hciattach /dev/ttyS1 texas 3000000
+service hciattach /system/bin/hciattach -n /dev/ttyS1 texas 3000000
     user bluetooth
     group bluetooth net_bt_admin misc
     disabled
