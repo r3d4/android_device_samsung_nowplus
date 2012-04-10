@@ -16,7 +16,7 @@
 
 #define LOG_TAG "Sensors"
 
-#define LOG_NDEBUG 1
+//#define LOG_NDEBUG 0
 
 #include <hardware/sensors.h>
 #include <fcntl.h>
@@ -896,6 +896,45 @@ static uint32_t data__poll_process_cm_abs(struct sensors_data_context_t *dev,
     }
     return new_sensors;
 }
+struct ls_adc {
+	int mv;
+	int lux;
+};
+
+struct ls_adc adc_lut[] =
+{
+	{     0,		1 },
+	{   100,      164 },
+	{   200,      287 },
+	{   300,      496 },
+	{   400,      868 },
+	{   500,     1531 },
+	{   600,     2691 },
+	{   700,     4691 },
+	{   800,     8279 },
+	{   2500,  100000 }
+};
+
+static int convertAdcToLux(int adc)
+{
+	int lux = 1;
+	unsigned int i;
+	for(i=0; i<ARRAY_SIZE(adc_lut); i++)
+	{
+		if(adc <= adc_lut[i].mv)
+		{
+			//lux	= adc_lut[i].lux;
+			if(i>0)
+			{
+				//interpolate
+				float diff = ((float)(adc-adc_lut[i-1].mv)/(adc_lut[i].mv-adc_lut[i-1].mv))*(adc_lut[i].lux-adc_lut[i-1].lux);
+				lux = adc_lut[i-1].lux+(int)diff;
+			}
+			break;
+		}
+	}
+	return lux;
+}
 
 static uint32_t data__poll_process_ls_abs(struct sensors_data_context_t *dev,
                                           int fd __attribute__((unused)),
@@ -909,18 +948,12 @@ static uint32_t data__poll_process_ls_abs(struct sensors_data_context_t *dev,
         if (event->code == EVENT_TYPE_LIGHT) {
             struct input_absinfo absinfo;
             int index;
-            if (!ioctl(fd, EVIOCGABS(ABS_DISTANCE), &absinfo)) {
+            if (!ioctl(fd, EVIOCGABS(ABS_DISTANCE), &absinfo))
+			{
                 new_sensors |= SENSORS_LIGHT;
-		dev->sensors[ID_L].light = event->value;
-#if 0
-		if (index >= 0) {
-                    new_sensors |= SENSORS_LIGHT;
-                    if (index >= ARRAY_SIZE(sLuxValues)) {
-                        index = ARRAY_SIZE(sLuxValues) - 1;
-                    }
-                    dev->sensors[ID_L].light = sLuxValues[index];
-                }
-#endif                
+				//get raw ADC dat
+				//dev->sensors[ID_L].light = event->value;
+				dev->sensors[ID_L].light = convertAdcToLux(event->value);
             }
         }
     }
