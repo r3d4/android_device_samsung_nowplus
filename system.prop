@@ -70,3 +70,6 @@ light.battery.show=0
 
 #enable overlay transparency hack, disable it if there are video playback problems
 overlay.transparency.enable=1
+
+#fix compatibility issues
+ro.kernel.android.checkjni=0

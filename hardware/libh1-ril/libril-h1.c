@@ -100,6 +100,8 @@ const RIL_RadioFunctions *RIL_Init(const struct RIL_Env *env, int argc, char **a
 
     LOGV("RIL_Init()\n");
 
+    onCompleteTrigger.token = NO_TRIGGER;
+
     if(property_get("ro.ril.enable.3gfix", value, ""))
         g3GFixEnable = value[0]-'0';
     if(property_get("ro.ril.enable.smsfix", value, ""))

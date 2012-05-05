@@ -19,5 +19,4 @@
 <resources>
     <bool name="def_auto_time">false</bool>
     <bool name="def_install_non_market_apps">true</bool>
-	<bool name="def_screen_brightness_automatic_mode">true</bool>
 </resources>
