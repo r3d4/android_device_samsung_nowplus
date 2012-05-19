@@ -90,6 +90,9 @@ PRODUCT_PROPERTY_OVERRIDES += \
     ro.com.google.locationfeatures=1 \
     ro.com.google.networklocation=1
 
+# T-Mobile theme engine
+include vendor/cyanogen/products/themes_common.mk
+
 PRODUCT_COPY_FILES +=  \
     vendor/cyanogen/prebuilt/hdpi/media/bootanimation.zip:system/media/bootanimation.zip
    
