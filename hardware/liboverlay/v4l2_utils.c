@@ -30,6 +30,7 @@
 #include <sys/mman.h>
 #include <stdlib.h>
 #include "v4l2_utils.h"
+
 #include <cutils/properties.h>
 #include <sys/poll.h>
 

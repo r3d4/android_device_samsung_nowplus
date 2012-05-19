@@ -14,7 +14,7 @@
 
 #include <linux/types.h>
 #include <linux/ioctl.h>
-#include "videodev2.h" //use local headers as kernel version differs 
+#include <linux/videodev2.h>
 
 #if defined(__MIN_V4L1) && defined (__KERNEL__)
 
