@@ -93,6 +93,9 @@ PRODUCT_PROPERTY_OVERRIDES += \
 # T-Mobile theme engine
 include vendor/cyanogen/products/themes_common.mk
 
+PRODUCT_COPY_FILES += \
+    device/samsung/nowplus/kernel:kernel
+
 PRODUCT_COPY_FILES +=  \
     vendor/cyanogen/prebuilt/hdpi/media/bootanimation.zip:system/media/bootanimation.zip
    
