@@ -51,6 +51,10 @@ android.keychar.TWL4030_Keypad = /system/usr/keychars/TWL4030_Keypad.kcm
 wifi.interface=tiwlan0
 wifi.supplicant_scan_interval=180
 
+wifi.hotspot.ti = 1
+wifi.ap.interface = tiap0
+softap.interface = tiap0
+
 alsa.mixer.playback.master=DAC2 Analog
 alsa.mixer.capture.master=Analog
 

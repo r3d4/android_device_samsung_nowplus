@@ -101,7 +101,6 @@ PRODUCT_COPY_FILES +=  \
    
 # root/
 PRODUCT_COPY_FILES += \
-    device/samsung/nowplus/init.rc:root/init.rc \
     device/samsung/nowplus/init.samsung.rc:root/init.samsung.rc \
     device/samsung/nowplus/ueventd.samsung.rc:root/ueventd.samsung.rc
 
@@ -142,8 +141,9 @@ PRODUCT_COPY_FILES += \
     device/samsung/nowplus/prebuilt/etc/wifi/nvs_map.bin:system/etc/wifi/nvs_map.bin \
     device/samsung/nowplus/prebuilt/etc/wifi/tiwlan_drv.ko:system/etc/wifi/tiwlan_drv.ko \
     device/samsung/nowplus/prebuilt/etc/wifi/wpa_supplicant.conf:system/etc/wifi/wpa_supplicant.conf \
-    device/samsung/nowplus/prebuilt/etc/wifi/tiwlan.ini:system/etc/wifi/tiwlan.ini
-
+    device/samsung/nowplus/prebuilt/etc/wifi/tiwlan.ini:system/etc/wifi/tiwlan.ini \
+    device/samsung/nowplus/prebuilt/etc/wifi/softap/tiap_drv.ko:system/etc/wifi/softap/tiap_drv.ko \
+    device/samsung/nowplus/prebuilt/etc/wifi/softap/firmware_ap.bin:system/etc/wifi/softap/firmware_ap.bin
 
 # system/media/
 #PRODUCT_COPY_FILES += \
@@ -179,9 +179,9 @@ PRODUCT_COPY_FILES += \
     device/samsung/nowplus/prebuilt/csc/isnew_csc.txt:system/csc/isnew_csc.txt \
     device/samsung/nowplus/prebuilt/csc/others.xml:system/csc/others.xml
     
-# kernel modules
+# kernel modules for ramdisk
 PRODUCT_COPY_FILES += \
-    $(call find-copy-subdir-files,*,device/samsung/nowplus/prebuilt/modules,system/lib/modules)
+    $(call find-copy-subdir-files,*,device/samsung/nowplus/prebuilt/modules/ramdisk,root/lib/modules)
 
 # Generated kcm keymaps
 PRODUCT_PACKAGES += \
