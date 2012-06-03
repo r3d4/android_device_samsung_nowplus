@@ -1,13 +1,14 @@
 #!/system/bin/sh
 # CPU Voltage = VSEL*12.5mV + 600 mV
 # OMAP3 SPEC: 950mV .. 1350mV
-VSEL=60
-RATE=800000
+U_VOLT=1350000
+RATE=800000000
+OPP=4
 
 #overclocking from userspace with milestone_overclock
-insmod /system/lib/modules/overclock.ko
+insmod /lib/modules/symsearch.ko
+insmod /lib/modules/overclock.ko
 
-echo $VSEL >  /proc/overclock/max_vsel
-echo $RATE >  /proc/overclock/max_rate
-
-echo "Overclocking ENABLED, max_vsel=$VSEL, max_rate=$RATE"
+echo $OPP $RATE $U_VOLT > /proc/overclock/mpu_opps
+ 
+echo "Overclocking ENABLED, max_uvolt=$U_VOLT, max_rate=$RATE"
