@@ -43,11 +43,6 @@ dalvik.vm.dexopt-flags=m=y
 dalvik.vm.execution-mode=int:jit
 dalvik.vm.dexopt-data-only=1
 
-android.keylayout.gpio-keys = /system/usr/keylayout/gpio-keys.kl
-android.keychar.gpio-keys = /system/usr/keychars/gpio-keys.kcm
-android.keylayout.TWL4030_Keypad = /system/usr/keylayout/TWL4030_Keypad.kl
-android.keychar.TWL4030_Keypad = /system/usr/keychars/TWL4030_Keypad.kcm
-
 wifi.interface=tiwlan0
 wifi.supplicant_scan_interval=180
 

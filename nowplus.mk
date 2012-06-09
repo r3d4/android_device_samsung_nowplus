@@ -169,7 +169,8 @@ PRODUCT_COPY_FILES += \
 # Prebuilt kl keymaps
 PRODUCT_COPY_FILES += \
     device/samsung/nowplus/TWL4030_Keypad.kl:system/usr/keylayout/TWL4030_Keypad.kl \
-    device/samsung/nowplus/gpio-keys.kl:system/usr/keylayout/gpio-keys.kl
+    device/samsung/nowplus/ear_key_driver.kl:system/usr/keylayout/ear_key_driver.kl \
+    device/samsung/nowplus/power_key_driver.kl:system/usr/keylayout/power_key_driver.kl
    
 # 3G
 PRODUCT_COPY_FILES += \
