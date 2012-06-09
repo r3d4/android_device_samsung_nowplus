@@ -446,7 +446,7 @@ size_t AudioHardware::getInputBufferSize(uint32_t sampleRate, int format, int ch
 
 void AudioHardware::setOutputVolume(uint32_t device, uint32_t volume)
 {
-    const char *name = "DAC Voice Digital Downlink Volume";;
+    const char *name = "DAC Voice Digital Downlink Volume";
     struct mixer_ctl *ctl;
 
     LOGD("### setOutputVolume: device= %d, volume= %d", device, volume);
@@ -570,6 +570,23 @@ status_t AudioHardware::dump(int fd, const Vector<String16>& args)
         mInputs[i]->dump(fd, args);
     }
 
+    return NO_ERROR;
+}
+
+status_t AudioHardware::setStandby()
+{
+    struct mixer_ctl *ctl;
+    if (mMixer) {
+        LOGD("AudioHardware set codec to standby.");
+        // powerdown MAX9877
+        ctl = mixer_get_control(mMixer, "Amp Enable", 0);
+        if(ctl)
+            mixer_ctl_select(ctl, "OFF");
+        // powerdown TWL5030 audio codec
+        ctl = mixer_get_control(mMixer, "Idle Mode", 0);
+        if(ctl)
+            mixer_ctl_select(ctl, "off");
+    }
     return NO_ERROR;
 }
 
@@ -810,6 +827,8 @@ void AudioHardware::closeMixer_l()
     }
 
     if (--mMixerOpenCnt == 0) {
+        // put codec in standby
+        setStandby();
         TRACE_DRIVER_IN(DRV_MIXER_CLOSE)
         mixer_close(mMixer);
         TRACE_DRIVER_OUT
@@ -1176,8 +1195,6 @@ void AudioHardware::AudioStreamOutALSA::close_l()
         mHardware->closePcmOut_l();
         mPcm = NULL;
     }
-
-
 }
 
 status_t AudioHardware::AudioStreamOutALSA::open_l()
