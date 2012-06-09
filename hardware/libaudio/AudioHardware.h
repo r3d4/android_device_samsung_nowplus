@@ -116,6 +116,7 @@ public:
             const char *getInputRouteFromDevice(uint32_t device);
             const char *getVoiceRouteFromDevice(uint32_t device);
 
+            status_t setStandby();
             status_t setIncallPath_l(uint32_t device);
             void setVoiceVolume_l(float volume);
 #ifdef HAVE_FM_RADIO
@@ -194,7 +195,6 @@ private:
 
     audio_source    mInputSource;
     bool            mBluetoothNrec;
-
 
 #ifdef HAVE_FM_RADIO
     int             mFmFd;
