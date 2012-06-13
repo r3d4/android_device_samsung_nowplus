@@ -57,6 +57,12 @@ COMMON_GLOBAL_CFLAGS += -DTARGET_OMAP3 -DOMAP_COMPAT
 
 TARGET_PREBUILT_KERNEL := device/samsung/nowplus/kernel
 
+# Recovery
+BOARD_CUSTOM_RECOVERY_KEYMAPPING:= ../../device/samsung/nowplus/recovery_ui.c
+BOARD_HAS_SMALL_RECOVERY := false
+BOARD_HAS_LARGE_FILESYSTEM := false
+BOARD_HAS_NO_SELECT_BUTTON := false
+
 #sound
 #BOARD_USES_ALSA_AUDIO := true
 BUILD_WITH_ALSA_UTILS := true
