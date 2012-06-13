@@ -481,7 +481,7 @@ LOGV("v4l2_overlay_set_colorkey: enable=%d, colorkey=%d", enable, colorkey);
 
     if (ret)
         return ret;
-
+#if 0
     if (enable)
         fbuf.flags |= V4L2_FBUF_FLAG_CHROMAKEY;
     else
@@ -491,7 +491,7 @@ LOGV("v4l2_overlay_set_colorkey: enable=%d, colorkey=%d", enable, colorkey);
 
     if (ret)
         return ret;
-
+#endif
     if (enable)
 
     {
@@ -563,11 +563,14 @@ LOGV("v4l2_overlay_set_local_alpha: enable=%d", enable);
         return ret;
 
     if (enable)
-        fbuf.flags |= V4L2_FBUF_FLAG_LOCAL_ALPHA;
+    {
+       fbuf.flags |= V4L2_FBUF_FLAG_LOCAL_ALPHA;
+       fbuf.flags &= ~V4L2_FBUF_FLAG_CHROMAKEY;
+    }
     else
         fbuf.flags &= ~V4L2_FBUF_FLAG_LOCAL_ALPHA;
 
-    ret = v4l2_overlay_ioctl(fd, VIDIOC_S_FBUF, &fbuf, "enable global alpha");
+    ret = v4l2_overlay_ioctl(fd, VIDIOC_S_FBUF, &fbuf, "enable local alpha");
 
     return ret;
 }

@@ -136,10 +136,10 @@ loglevel 3
 on fs
     # mount onenand mtd partitions
     # Mount /system rw first to give the filesystem a chance to save a checkpoint
-    mount yaffs2 mtd@system /system
-    #mount yaffs2 mtd@system /system ro remount
-    mount yaffs2 mtd@userdata /data nosuid nodev
-    mount yaffs2 mtd@cache /cache nosuid nodev
+    mount yaffs2 mtd@system /system noatime nodiratime
+    #mount yaffs2 mtd@system /system ro remount noatime nodiratime
+    mount yaffs2 mtd@userdata /data nosuid nodev noatime nodiratime
+    mount yaffs2 mtd@cache /cache nosuid nodev noatime nodiratime
 
 
 # load camera modules
